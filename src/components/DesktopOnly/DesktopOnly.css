@@ -1,0 +1,42 @@
+
+
+body {
+    margin: 0;
+    overflow-x: hidden;
+}
+
+.desktop-only-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+}
+
+.glass-card {
+    text-align: center;
+    color: white;
+
+    padding: 40px 50px;
+
+    max-width: 420px;
+    width: 100%;
+
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+
+    backdrop-filter: blur(14px);
+
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+}
+
+@media (max-width: 480px) {
+    .glass-card {
+        padding: 30px 20px;
+    }
+
+    .title {
+        font-size: 28px;
+    }
+}

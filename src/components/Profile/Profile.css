@@ -1,0 +1,448 @@
+.profile-page {
+    background-size: 400% 400%;
+    animation: gradientFlow 16s ease infinite;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: Vazirmatn;
+    color: white;
+    padding: 20px;
+}
+
+@keyframes gradientFlow {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.profile-card {
+    width: 420px;
+    padding: 30px;
+    border-radius: 20px;
+    backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 0 15px 14px rgb(0 0 0 / 10%);
+    animation: popIn 0.3s ease;
+    text-align: right;
+}
+
+@keyframes popIn {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.profile-title {
+    font-size: 28px;
+    margin-bottom: 20px;
+    text-align: center;
+    color: #fff;
+}
+
+.icon-left {
+    margin-left: 8px;
+    font-size: 1.1em;
+}
+
+.profile-info {
+    margin-bottom: 25px;
+}
+
+.info-item {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 10px 14px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    font-size: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.profile-subtitle {
+    font-size: 22px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.score-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.score-card {
+    background: rgba(255, 255, 255, 0.12);
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    font-size: 15px;
+}
+
+.glass-back-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    padding: 8px 18px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    color: white;
+    backdrop-filter: blur(10px);
+    transition: 0.2s;
+}
+
+
+
+.empty {
+    text-align: center;
+    opacity: .8;
+}
+
+
+.profile-card {
+    width: 420px;
+    max-height: 85vh;
+    overflow: hidden;
+    padding: 30px;
+    border-radius: 20px;
+    backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    display: flex;
+    flex-direction: column;
+}
+
+.score-list {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 5px;
+    padding-top: 5px;
+}
+
+.score-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.score-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: 6px;
+}
+
+.score-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+
+.score-list {
+    max-height: 260px;
+    overflow-y: auto;
+    padding-right: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.score-card {
+    background: rgba(255, 255, 255, 0.13);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    padding: 14px 18px;
+    border-radius: 14px;
+    animation: fadeIn 0.2s ease;
+    transition: 0.2s;
+}
+
+.score-card:hover {
+    transform: translateY(-3px);
+    background: rgba(255, 255, 255, 0.20);
+}
+
+.score-header {
+    font-size: 15px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #fff;
+    opacity: 0.9;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    padding-bottom: 6px;
+}
+
+.score-row {
+    display: flex;
+    justify-content: space-between;
+    margin: 6px 0;
+    font-size: 15px;
+}
+
+.score-label {
+    opacity: 0.85;
+    font-weight: 500;
+}
+
+.score-value {
+    font-weight: bold;
+    color: #fff;
+}
+
+.score-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.score-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: 6px;
+}
+
+.score-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+.edit-input {
+    flex: 1;
+    margin-right: 10px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: none;
+    outline: none;
+    background: rgba(255, 255, 255, 0.25);
+    color: #fff;
+}
+
+.edit-btn,
+.save-btn,
+.cancel-btn {
+    width: 100%;
+    padding: 10px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    margin-bottom: 10px;
+    font-size: 15px;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    align-items: center;
+}
+
+.edit-btn {
+    background: rgba(255, 255, 255, 0.25);
+    color: #fff;
+    margin-top: 20px;
+}
+
+
+.save-btn:hover {
+    background: #fb8c00;
+    transform: translateY(-1px);
+
+}
+
+.cancel-btn {
+    background: #d9534f;
+    color: white;
+}
+
+
+.wpm-text {
+    color: #c2c1c1;
+    text-align: left;
+    font-size: small;
+    margin-top: 5px;
+}
+
+.card-back-btn {
+    top: 18px;
+    left: 18px;
+    padding: 6px 14px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 10px;
+    color: white;
+    backdrop-filter: blur(10px);
+    transition: 0.2s;
+    font-size: 14px;
+}
+
+.card-back-btn:hover {
+    background: rgba(255, 255, 255, 0.28);
+}
+
+.profile-form {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.form-label {
+    opacity: 0.85;
+}
+
+.form-input {
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+    outline: none;
+}
+
+.save-btn {
+    margin-top: 16px;
+    padding: 10px;
+    border-radius: 12px;
+    background: #ff9800;
+    color: #000000;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    width: 100%;
+}
+
+.profile-divider {
+    border: none;
+    border-top: 2px dotted rgba(255, 255, 255, 0.117);
+    margin: 25px 0;
+    width: 100%;
+}
+
+.profile-subtitle {
+    margin-top: 0;
+    font-size: 20px;
+    margin-bottom: 15px;
+}
+
+.profile-header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+}
+
+.card-back-btn {
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.card-back-btn:hover {
+    background: rgba(255, 255, 255, 0.22);
+    transform: scale(1.05);
+}
+
+.logout-btn {
+    background: #ff9800;
+    color: #000000;
+    border: 1px solid #ff9800;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+    background: #fb8c00;
+    transform: translateY(-1px);
+}
+
+.loading-message {
+    direction: rtl;
+    color: #ffff;
+}
+
+.password-wrapper {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+}
+
+/* استایل دکمه ریست کپچا */
+.captcha-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.captcha-reset-btn {
+    background: #ff9800;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.captcha-reset-btn:hover {
+    background: #e19017e6;
+    transform: translateY(-2px);
+}
+
+.captcha-reset-btn:active {
+    transform: translateY(0);
+}
+
+/* استایل کانتینر کپچا */
+.custom-captcha canvas {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+#reload_href {
+    display: none;
+}
+
+#canv {
+    width: 250px;
+    border-radius: 10px;
+}

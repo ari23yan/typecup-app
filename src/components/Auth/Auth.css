@@ -1,0 +1,175 @@
+.modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.modal-input {
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 18px;
+    outline: none;
+    transition: .2s;
+    text-align: center;
+}
+
+.modal-input:focus {
+    border-color: #959598;
+}
+
+.modal-btn {
+    width: 100%;
+    padding: 14px 0;
+    margin: 8px 0;
+
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+
+    color: white;
+    border-radius: 12px;
+    font-size: 18px;
+
+    cursor: pointer;
+    transition: all 0.25s ease-in-out;
+
+    backdrop-filter: blur(6px);
+}
+
+.modal-btn:hover {
+    background: rgba(255, 255, 255, 0.22);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(255, 255, 255, 0.25);
+}
+
+@keyframes modalIn {
+    from {
+        transform: scale(.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+
+.otp-text {
+    color: #ffff;
+    text-align: right;
+}
+
+.otp-container {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.otp-input {
+    width: 45px;
+    height: 45px;
+    text-align: center;
+    font-size: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+
+.modal-close {
+    position: relative;
+    bottom: 10px;
+    right: 176px;
+    border: none;
+    background: none;
+    font-size: 22px;
+    cursor: pointer;
+    color: #bebebe;
+    animation: fadeIn 0.8s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.modal-close:hover {
+    color: #666;
+}
+
+.modal-link {
+    color: #c2c1c1;
+    text-align: right;
+    width: 40%;
+}
+
+.forget-pass-icon {
+    margin-left: 5px;
+    font-size: 13px;
+    vertical-align: middle;
+}
+
+.timer-text {
+    text-align: center;
+    color: #ffffff;
+    font-size: 0.9rem;
+    margin-top: 10px;
+    direction: ltr;
+}
+
+.resend-section {
+    margin-top: 10px;
+    text-align: center;
+}
+
+.resend-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #ffffff;
+    font-size: 0.9rem;
+    text-align: center !important;
+}
+
+.resend-btn:hover {
+    text-decoration: underline;
+}
+
+
+.password-wrapper {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.password-input {
+    flex: 1;
+    padding-right: 40px;
+    text-align: center;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #aaa;
+    font-size: 18px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+
+.password-toggle:hover {
+    color: #887e7e;
+}

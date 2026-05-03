@@ -1,0 +1,16 @@
+body {
+  font-family: 'Vazirmatn', 'Segoe UI', Tahoma, 'Tehran', system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+  background-size: 400% 400%;
+  animation: gradientFlow 16s ease infinite;
+  min-height: 100vh;
+}
+
+input, button {
+  font-family: 'Vazirmatn', 'Segoe UI', Tahoma, monospace;
+}
+.toast-ltr {
+  direction: ltr;
+}
