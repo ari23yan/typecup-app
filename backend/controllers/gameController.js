@@ -117,7 +117,7 @@ exports.getLeaderboard = async (req, res) => {
         const validSortFields = ['score', 'wpm', 'accuracy', 'waveReached'];
         const sortField = validSortFields.includes(sortBy) ? sortBy : 'score';
 
-        const sortOrder = -1;
+        const sortOrder = -1; 
 
         const leaderboard = await TypingScore.aggregate([
             {
@@ -129,6 +129,7 @@ exports.getLeaderboard = async (req, res) => {
                 }
             },
             { $unwind: '$user' },
+
             {
                 $group: {
                     _id: '$user._id',
@@ -140,14 +141,15 @@ exports.getLeaderboard = async (req, res) => {
                     lastPlayed: { $max: '$createdAt' }
                 }
             },
+
             {
                 $sort: {
-                    [sortField === 'score' ? 'bestScore' :
-                        sortField === 'wpm' ? 'bestWpm' :
-                            sortField === 'waveReached' ? 'bestWaveReached' : sortField]: sortOrder
+                    [sortField]: sortOrder
                 }
             },
+
             { $limit: parseInt(limit) },
+
             {
                 $project: {
                     _id: 0,
@@ -181,6 +183,7 @@ exports.getLeaderboard = async (req, res) => {
         );
 
     } catch (error) {
+        console.error(error);
         return res.status(500).json(
             new ApiResponse(
                 500,
