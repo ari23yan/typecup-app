@@ -37,6 +37,10 @@ export default function Profile() {
     const [showResetPassword, setShowResetPassword] = useState(false);
     const [captchaValue, setCaptchaValue] = useState("");
     const resetPasswordRef = useRef(null);
+    const [sendOtpLoading, setSendOtpLoading] = useState(false);
+    const [verifyOtpLoading, setVerifyOtpLoading] = useState(false);
+    const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+    const [updateProfileLoading, setUpdateProfileLoading] = useState(false);
 
     const [editData, setEditData] = useState({
         name: "",
@@ -62,7 +66,7 @@ export default function Profile() {
 
     useEffect(() => {
         if (step === "captcha") {
-        loadCaptchaEnginge(5, 'white', 'black', 'numbers');
+            loadCaptchaEnginge(5, 'white', 'black', 'numbers');
             setCaptchaValue("");
         }
     }, [step]);
@@ -98,19 +102,29 @@ export default function Profile() {
     }, [timeLeft]);
 
     const handleSave = async () => {
+        if (updateProfileLoading) return;
+
         try {
             validate(editData);
+
+            setUpdateProfileLoading(true);
+
             const result = await updateProfile(editData);
+
             if (result.success) {
                 setUser(editData);
                 toast.success(result.message);
             } else {
                 toast.error(result.message);
             }
+
         } catch (err) {
             console.error(err);
+        } finally {
+            setUpdateProfileLoading(false);
         }
     };
+
 
     const handleLogout = async () => {
         const result = await logout();
@@ -163,6 +177,9 @@ export default function Profile() {
     }
 
     const handleSendOtp = async () => {
+
+        if (sendOtpLoading) return;
+
         if (!validateCaptcha(captchaValue)) {
             toast.error("کد کپچا اشتباه است");
             return;
@@ -173,21 +190,32 @@ export default function Profile() {
             return;
         }
 
-        const data = await sendPasswordResetOtp(phone);
+        try {
 
-        if (data.success) {
-            toast.success(data.message);
-            setTimeLeft(60);
-            setCanResend(false);
-            setOtpCode(["", "", "", ""]);
-            setStep("otp");
-            setCaptchaValue("");
-        } else {
-            toast.error(data.message);
+            setSendOtpLoading(true);
+
+            const data = await sendPasswordResetOtp(phone);
+
+            if (data.success) {
+                toast.success(data.message);
+                setTimeLeft(60);
+                setCanResend(false);
+                setOtpCode(["", "", "", ""]);
+                setStep("otp");
+                setCaptchaValue("");
+            } else {
+                toast.error(data.message);
+            }
+
+        } finally {
+            setSendOtpLoading(false);
         }
     };
 
     const handleVerifyOtp = async () => {
+
+        if (verifyOtpLoading) return;
+
         const code = otpCode.join("");
 
         if (code.length !== 4) {
@@ -196,6 +224,9 @@ export default function Profile() {
         }
 
         try {
+
+            setVerifyOtpLoading(true);
+
             const data = await verifyOtp(phone, code);
 
             if (data.success) {
@@ -205,31 +236,43 @@ export default function Profile() {
             } else {
                 toast.error(data.message);
             }
-        } catch (err) {
+
+        } catch {
             toast.error("خطا در تایید کد");
+        } finally {
+            setVerifyOtpLoading(false);
         }
     };
 
     const handleResetPassword = async () => {
+
+        if (resetPasswordLoading) return;
+
         if (!validatePassword(password)) {
             toast.error("رمز عبور باید حداقل 8 کاراکتر باشد");
             return;
         }
 
         try {
+
+            setResetPasswordLoading(true);
+
             const data = await passwordReset(phone, password);
 
             if (data.success) {
                 toast.success("رمز عبور با موفقیت تغییر کرد");
                 resetPasswordFlow();
-                handleResetPassword();
             } else {
                 toast.error(data.message);
             }
-        } catch (err) {
+
+        } catch {
             toast.error("خطا در تغییر رمز عبور");
+        } finally {
+            setResetPasswordLoading(false);
         }
     };
+
 
     const handleKeyPress = (e, callback) => {
         if (e.key === "Enter") {
@@ -242,7 +285,7 @@ export default function Profile() {
     }
 
     const resetPasswordFlow = () => {
-        setStep("idle");
+        setStep("");
         setOtpCode(["", "", "", ""]);
         setPassword("");
         setTimeLeft(0);
@@ -261,7 +304,7 @@ export default function Profile() {
             <div>
                 {step === "captcha" && (
                     <>
-                        <div dir="rtl" className="modal-overlay" onClick={handleCloseModal}>
+                        <div dir="rtl" className="modal-overlay">
                             <div className="modal-box" onClick={(e) => e.stopPropagation()}>
                                 <div className="modal-content">
                                     <button className="modal-close" onClick={handleCloseModal}>
@@ -300,41 +343,9 @@ export default function Profile() {
                         </div>
                     </>
                 )}
-
-                {step === "idle" && (
-                    <>
-                        <div dir="rtl" className="modal-overlay" onClick={handleCloseModal}>
-                            <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-                                <div className="modal-content">
-                                    <button className="modal-close" onClick={handleCloseModal}>
-                                        ✕
-                                    </button>
-                                    <h2 className="modal-title">ورود / ثبت نام</h2>
-
-                                    <div className="modal-form">
-                                        <input
-                                            className="modal-input"
-                                            placeholder="شماره موبایل"
-                                            value={phone}
-                                            onChange={(e) => setPhone(e.target.value)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Enter") handleSendOtp();
-                                            }}
-                                        />
-
-                                        <button className="modal-btn" onClick={handleSendOtp}>
-                                            ادامه
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </>
-                )}
-
                 {step === "resetPassword" && (
                     <>
-                        <div dir="rtl" className="modal-overlay" onClick={handleCloseModal}>
+                        <div dir="rtl" className="modal-overlay" >
                             <div className="modal-box" onClick={(e) => e.stopPropagation()}>
                                 <div className="modal-content">
                                     <button className="modal-close" onClick={handleCloseModal}>
@@ -369,10 +380,9 @@ export default function Profile() {
                         </div>
                     </>
                 )}
-
                 {step === "otp" && (
                     <>
-                        <div dir="rtl" className="modal-overlay" onClick={handleCloseModal}>
+                        <div dir="rtl" className="modal-overlay">
                             <div className="modal-box" onClick={(e) => e.stopPropagation()}>
                                 <div className="modal-content">
                                     <button className="modal-close" onClick={handleCloseModal}>
@@ -450,9 +460,14 @@ export default function Profile() {
                         />
                     </form>
 
-                    <button className="save-btn" onClick={handleSave}>
-                        بروزرسانی پروفایل
+                    <button
+                        className="save-btn"
+                        onClick={handleSave}
+                        disabled={updateProfileLoading}
+                    >
+                        {updateProfileLoading ? <span className="btn-loader"></span> : "بروزرسانی پروفایل"}
                     </button>
+
 
                     <a
                         href="#"

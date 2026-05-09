@@ -188,15 +188,51 @@ export default function Game({ onBack }) {
         return word;
     }
 
-    function generateSafeX(existingWords, minGap = 12) {
-        const used = existingWords.map(w => w.x);
-        for (let attempt = 0; attempt < 40; attempt++) {
-            const x = 5 + Math.random() * 85;
-            const safe = used.every(u => Math.abs(u - x) > minGap);
-            if (safe) return x;
+    function generateSafeX(existingWords, minGap = 15) {
+        if (existingWords.length === 0) {
+            return 5 + Math.random() * 85;
         }
-        return 5 + Math.random() * 85;
+
+        const xs = existingWords.map(w => w.x).sort((a, b) => a - b);
+
+        let validRanges = [];
+
+        if (xs[0] - 5 >= minGap) {
+            validRanges.push([5, xs[0] - minGap]);
+        }
+
+        for (let i = 0; i < xs.length - 1; i++) {
+            const left = xs[i] + minGap;
+            const right = xs[i + 1] - minGap;
+            if (right - left >= minGap) {
+                validRanges.push([left, right]);
+            }
+        }
+
+        if (90 - xs[xs.length - 1] >= minGap) {
+            validRanges.push([xs[xs.length - 1] + minGap, 90]);
+        }
+
+        if (validRanges.length > 0) {
+            const [minX, maxX] = validRanges[Math.floor(Math.random() * validRanges.length)];
+            return minX + Math.random() * (maxX - minX);
+        }
+
+        let bestX = 50;
+        let bestDistance = 0;
+
+        for (let x = 5; x <= 90; x += 1) {
+            let dist = Math.min(...xs.map(xx => Math.abs(xx - x)));
+            if (dist > bestDistance) {
+                bestDistance = dist;
+                bestX = x;
+            }
+        }
+
+        return bestX;
     }
+
+
 
     function getSpawnCount(multi) {
         const rnd = Math.random();
@@ -316,10 +352,12 @@ export default function Game({ onBack }) {
                 let updated = [...prev];
 
                 for (let i = 0; i < count && updated.length < getMaxConcurrentWords(); i++) {
+                    const newX = generateSafeX(updated);
+                    if (newX === null) continue;
                     const newWord = {
                         id: Date.now() + Math.random() + i,
                         text: randomWord(updated),
-                        x: generateSafeX(updated),
+                        x: newX,
                         duration: config.speed,
                         createdAt: Date.now()
                     };
