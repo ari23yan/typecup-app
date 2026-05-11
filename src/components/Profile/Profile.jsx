@@ -1,11 +1,15 @@
 import "./Profile.css";
 import { FaTrophy, FaArrowLeft, FaEye, FaEyeSlash, FaSyncAlt } from "react-icons/fa";
 import { FiLogOut } from "react-icons/fi";
-import { FaKey } from "react-icons/fa";
+import { FaKey, FaFont } from "react-icons/fa";
 import { getProfile, updateProfile } from "../../api/profile";
 import { logout, verifyOtp, sendPasswordResetOtp, passwordReset } from "../../api/auth";
 import { useEffect, useState, useRef } from "react";
+
+
+
 import { useNavigate } from "react-router-dom";
+
 import toast from "react-hot-toast";
 import "../Auth/Auth.css";
 import OtpInput from "../Otp/OtpInput";
@@ -468,6 +472,12 @@ export default function Profile() {
                         {updateProfileLoading ? <span className="btn-loader"></span> : "بروزرسانی پروفایل"}
                     </button>
 
+                    <button
+                        className="typo-btn"
+                        onClick={() => navigate("/typography")}>
+                        مشاهده تایپوگرافی
+                    </button>
+
 
                     <a
                         href="#"
@@ -496,9 +506,14 @@ export default function Profile() {
                                 <div className="score-card" dir="rtl" key={i}>
                                     <div className="score-header">رکورد {toPersianNumbers((i + 1).toString())}</div>
                                     <div className="score-row">
+                                        <span className="score-label">امتیاز:</span>
+                                        <span className="score-value">{toPersianNumbers(s.score.toString())}</span>
+                                    </div>
+                                    <div className="score-row">
                                         <span className="score-label">WPM:</span>
                                         <span className="score-value">{toPersianNumbers(s.wpm.toString())}</span>
                                     </div>
+
                                     <div className="score-row">
                                         <span className="score-label">دقت:</span>
                                         <span className="score-value">{toPersianNumbers(s.accuracy.toString())}%</span>

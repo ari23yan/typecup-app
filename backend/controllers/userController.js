@@ -6,9 +6,9 @@ const MESSAGES = require("../constants/responseMessages");
 exports.getProfile = async (req, res) => {
     try {
 
-        const userId = req.user.id; 
+        const userId = req.user.id;
 
-        const user = await User.findById(userId).select("-password");
+        const user = await User.findById(userId).select("-password -__v -_id");
 
         if (!user) {
             return res.status(404).json(
@@ -20,9 +20,12 @@ exports.getProfile = async (req, res) => {
                 )
             );
         }
+
         const lastScores = await TypingScore.find({ user: userId })
+            .select("-_id -user -updatedAt -__v")
             .sort({ wpm: -1, createdAt: -1 })
             .limit(10);
+
 
         return res.json(
             new ApiResponse(
@@ -73,7 +76,7 @@ exports.updateProfile = async (req, res) => {
 
         const updatedUser = await User.findByIdAndUpdate(
             userId,
-            { $set: { name, userName, email }},
+            { $set: { name, userName, email } },
             { new: true }
         );
 
@@ -98,6 +101,76 @@ exports.updateProfile = async (req, res) => {
         );
 
     } catch (error) {
+        return res.status(500).json(
+            new ApiResponse(
+                500,
+                MESSAGES.ERROR.DEFAULT,
+                null,
+                false
+            )
+        );
+    }
+};
+
+exports.getTypingStats = async (req, res) => {
+    try {
+
+        const userId = req.user.id;
+
+        const scores = await TypingScore.find({ user: userId });
+
+        if (!scores || scores.length === 0) {
+            return res.json(
+                new ApiResponse(
+                    200,
+                    MESSAGES.SUCCESS.DEFAULT,
+                    {
+                        maxWpm: 0,
+                        avgWpm: 0,
+                        avgAccuracy: 0,
+                        maxScore: 0,
+                        testsCount: 0,
+                        totalDuration: 0
+                    },
+                    true
+                )
+            );
+        }
+
+        const testsCount = scores.length;
+
+        const maxWpm = Math.max(...scores.map(s => s.wpm));
+
+        const maxScore = Math.max(...scores.map(s => s.score));
+
+        const avgWpm =
+            scores.reduce((sum, s) => sum + s.wpm, 0) / testsCount;
+
+        const avgAccuracy =
+            scores.reduce((sum, s) => sum + s.accuracy, 0) / testsCount;
+
+        const totalDuration =
+            scores.reduce((sum, s) => sum + (s.duration || 0), 0);
+
+        return res.json(
+            new ApiResponse(
+                200,
+                MESSAGES.SUCCESS.DEFAULT,
+                {
+                    maxWpm: Math.round(maxWpm),
+                    avgWpm: Math.round(avgWpm),
+                    avgAccuracy: Math.round(avgAccuracy),
+                    maxScore: Math.round(maxScore),
+                    testsCount,
+                    totalDuration
+                },
+                true
+            )
+        );
+
+    } catch (error) {
+        console.error("TypingStats Error:", error);
+
         return res.status(500).json(
             new ApiResponse(
                 500,

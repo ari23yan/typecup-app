@@ -40,6 +40,7 @@ export default function Game({ onBack }) {
     const [score, setScore] = useState(0);
     const [wave, setWave] = useState(1);
     const maxWave = 5;
+    const [wordsLoading, setWordsLoading] = useState(false);
 
     const [pendingWave, setPendingWave] = useState(null);
     const [startTime, setStartTime] = useState(null);
@@ -55,6 +56,8 @@ export default function Game({ onBack }) {
     const spawnIntervalRef = useRef(null);
     const endGameTimeoutRef = useRef(null);
     const isEndingRef = useRef(false);
+    const [wordsLoaded, setWordsLoaded] = useState(false);
+    const usedWordsRef = useRef(new Set());
 
     const [playClick] = useSound(clickSound, { volume: .6 });
     const [playError] = useSound(errorSound, { volume: .6 });
@@ -67,20 +70,30 @@ export default function Game({ onBack }) {
 
     const loadWords = async (waveNum) => {
         try {
+            setWordsLoading(true);
+
             const response = await getWordsByWave(waveNum);
-            if (response.success && response.data && response.data.length > 0) {
+
+            if (response.success && response.data?.length) {
                 const words = response.data.map(word =>
-                    typeof word === 'string' ? word : word.text || word.word
+                    typeof word === "string" ? word : word.text || word.word
                 );
+
                 setWordBank(prev => {
                     const combined = [...prev, ...words];
                     return Array.from(new Set(combined));
                 });
+
+                setWordsLoaded(true);
             }
         } catch (error) {
             console.error("Error fetching words:", error);
+        } finally {
+            setWordsLoading(false);
         }
     };
+
+
 
     useEffect(() => {
         if (started && wordBank.length === 0) {
@@ -168,25 +181,31 @@ export default function Game({ onBack }) {
 
     function randomWord(existingWords = []) {
         const list = getWordList();
-        if (!list.length) return "کلمه";
+        if (!list.length) return null;
 
-        const usedFirstChars = existingWords.map(w => normalizeChar(w.text[0]));
-        let availableWords = list.filter(w => !usedFirstChars.includes(normalizeChar(w[0])));
+        const activeFirstChars = existingWords.map(w =>
+            normalizeChar(w.text[0])
+        );
 
-        if (availableWords.length === 0) availableWords = list;
+        const availableWords = list.filter(word => {
+            const normalizedFirst = normalizeChar(word[0]);
 
-        let attempts = 0;
-        let word;
-        do {
-            word = availableWords[Math.floor(Math.random() * availableWords.length)];
-            attempts++;
-            if (attempts > 20) break;
-        } while (recentWordsRef.current.includes(word) && attempts < 20);
+            return (
+                !usedWordsRef.current.has(word) &&           
+                !activeFirstChars.includes(normalizedFirst)  
+            );
+        });
 
-        recentWordsRef.current.unshift(word);
-        if (recentWordsRef.current.length > 5) recentWordsRef.current.pop();
-        return word;
+        if (availableWords.length === 0) return null;
+
+        const randomIndex = Math.floor(Math.random() * availableWords.length);
+        const selectedWord = availableWords[randomIndex];
+
+        usedWordsRef.current.add(selectedWord);
+
+        return selectedWord;
     }
+
 
     function generateSafeX(existingWords, minGap = 15) {
         if (existingWords.length === 0) {
@@ -296,6 +315,8 @@ export default function Game({ onBack }) {
 
     const startWave = (newWave) => {
         if (gameOver) return;
+        usedWordsRef.current.clear();
+
         setIsWaveTransition(true);
         setShowWaveText(true);
         setActiveWordId(null);
@@ -336,7 +357,7 @@ export default function Game({ onBack }) {
     }, [fallingWords, pendingWave, isWaveTransition]);
 
     useEffect(() => {
-        if (!started || gameOver || isWaveTransition || pendingWave) return;
+        if (!started || gameOver || isWaveTransition || pendingWave || wordsLoading || !wordsLoaded) return;
 
         if (spawnIntervalRef.current) {
             clearInterval(spawnIntervalRef.current);
@@ -353,10 +374,12 @@ export default function Game({ onBack }) {
 
                 for (let i = 0; i < count && updated.length < getMaxConcurrentWords(); i++) {
                     const newX = generateSafeX(updated);
+                    const wordText = randomWord(updated);
+                    if (!wordText) continue;
                     if (newX === null) continue;
                     const newWord = {
                         id: Date.now() + Math.random() + i,
-                        text: randomWord(updated),
+                        text: wordText,
                         x: newX,
                         duration: config.speed,
                         createdAt: Date.now()
@@ -546,6 +569,14 @@ export default function Game({ onBack }) {
                 <FaArrowLeft className="icon" />
                 بازگشت
             </button>
+
+            {started && wordsLoading && (
+                <div className="loading-overlay">
+                    <div className="spinner"></div>
+                    <p>در حال بارگذاری کلمات...</p>
+                </div>
+            )}
+
 
             {!started && (
                 <div className="start-screen" dir="rtl">

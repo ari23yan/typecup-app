@@ -10,3 +10,9 @@ export const updateProfile = (data) => {
         body: JSON.stringify(data)
     });
 };
+
+export const getTypingStats = async () => {
+    return apiClient("/profile/typing-stats");
+};
+
+

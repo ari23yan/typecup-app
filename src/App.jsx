@@ -5,6 +5,7 @@ import ProfilePage from './pages/ProfilePage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import DesktopOnly from './components/DesktopOnly/DesktopOnly';
 import Game from './components/Game/Game';
+import TypographyPage from './pages/TypographyPage';
 import { isMobile } from "react-device-detect";
 import { Toaster } from "react-hot-toast";
 import './App.css';
@@ -13,7 +14,7 @@ function ProtectedRoute({ children }) {
   const token = localStorage.getItem('token');
 
   if (!token) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return children;
@@ -40,7 +41,11 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/demo" element={<DemoPage />} />
-        <Route path="/game" element={<Game />} />
+        <Route path="/game" element={
+          <ProtectedRoute>
+            <Game />
+          </ProtectedRoute>
+        } />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route
           path="/profile"
@@ -50,6 +55,15 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/typography"
+          element={
+            <ProtectedRoute>
+              <TypographyPage />
+            </ProtectedRoute>
+          }
+        />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

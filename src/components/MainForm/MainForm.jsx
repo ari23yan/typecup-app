@@ -62,7 +62,7 @@ export default function MainForm() {
         )}
 
         <a className="menu-btn" onClick={() => setShowAbout(true)}>
-          درباره ما
+          درباره
         </a>
 
         <a
@@ -72,7 +72,6 @@ export default function MainForm() {
           حمایت مالی
         </a>
       </div>
-
       {showAbout && (
         <div dir="rtl" className="modal-overlay" onClick={() => setShowAbout(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
