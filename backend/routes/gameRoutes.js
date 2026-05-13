@@ -5,6 +5,6 @@ const authMiddleware = require('../middlewares/authMiddleware');
 
 router.get('/words/:wave', authMiddleware, gameController.getWordsByWave);
 router.post('/save-result', authMiddleware, gameController.saveGameResult);
-router.post('/leaderboard', gameController.getLeaderboard);
+router.get('/leaderboard', gameController.getLeaderboard);
 
 module.exports = router;

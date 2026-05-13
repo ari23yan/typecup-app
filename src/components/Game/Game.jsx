@@ -75,9 +75,17 @@ export default function Game({ onBack }) {
             const response = await getWordsByWave(waveNum);
 
             if (response.success && response.data?.length) {
-                const words = response.data.map(word =>
-                    typeof word === "string" ? word : word.text || word.word
-                );
+                const words = response.data.map(word => {
+                    const text =
+                        typeof word === "string"
+                            ? word
+                            : word.text || word.word;
+
+                    return text
+                        ?.normalize("NFKC")
+                        .replace(/\u200c/g, "")
+                        .trim();
+                });
 
                 setWordBank(prev => {
                     const combined = [...prev, ...words];
@@ -168,16 +176,22 @@ export default function Game({ onBack }) {
     }
 
     function normalizeChar(c) {
-        if (!c) return c;
-        let n = c.normalize("NFKC");
-        const map = {
-            'ي': 'ی', 'ى': 'ی', 'ئ': 'ی', 'ی': 'ی',
-            'ك': 'ک', 'ک': 'ک', 'أ': 'ا', 'إ': 'ا',
-            'آ': 'ا', 'ا': 'ا', 'ة': 'ه', 'ؤ': 'و'
-        };
-        if (map[n]) n = map[n];
-        return n.replace(/[\u064B-\u065F]/g, "");
+        if (!c) return "";
+
+        return c
+            .normalize("NFKC")
+            .replace(/[\u064B-\u065F]/g, "") // حذف اعراب
+            .replace(/\u200c/g, "") // حذف نیم‌فاصله
+            .replace(/\u200f/g, "") // حذف RTL mark
+            .replace(/\u200e/g, "") // حذف LTR mark
+            .replace(/[يىئ]/g, "ی")
+            .replace(/[ك]/g, "ک")
+            .replace(/[أإآ]/g, "ا")
+            .replace(/[ة]/g, "ه")
+            .replace(/[ؤ]/g, "و")
+            .trim();
     }
+
 
     function randomWord(existingWords = []) {
         const list = getWordList();
@@ -191,8 +205,8 @@ export default function Game({ onBack }) {
             const normalizedFirst = normalizeChar(word[0]);
 
             return (
-                !usedWordsRef.current.has(word) &&           
-                !activeFirstChars.includes(normalizedFirst)  
+                !usedWordsRef.current.has(word) &&
+                !activeFirstChars.includes(normalizedFirst)
             );
         });
 
@@ -572,11 +586,10 @@ export default function Game({ onBack }) {
 
             {started && wordsLoading && (
                 <div className="loading-overlay">
-                    <div className="spinner"></div>
-                    <p>در حال بارگذاری کلمات...</p>
+                    <div className="loader"></div>
+                    <p className="loading-message">در حال بارگذاری...</p>
                 </div>
             )}
-
 
             {!started && (
                 <div className="start-screen" dir="rtl">
@@ -616,9 +629,10 @@ export default function Game({ onBack }) {
 
             {started && (
                 <>
-                    {showWaveText && (
+                    {showWaveText && !wordsLoading && (
                         <div className="wave-popup"> مرحله {wave} </div>
                     )}
+
 
                     <div className="hud-box">
                         <div className="hud-item">

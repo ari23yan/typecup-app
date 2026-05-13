@@ -46,7 +46,7 @@ export default function Typography() {
         if (maxWpm >= 60) level = "Advanced";
         if (maxWpm >= 80) level = "Expert";
 
-        const totalMinutes = Math.round(totalDuration / 60); 
+        const totalMinutes = Math.round(totalDuration / 60);
         const hours = Math.floor(totalMinutes / 60);
         const minutes = totalMinutes % 60;
 
@@ -71,15 +71,24 @@ export default function Typography() {
         };
     }, [stats]);
 
-    if (loading) {
-        return <div className="typo-loading">در حال ساختن تایپوگرافی اختصاصی شما...</div>;
-    }
+    if (loading) return (
+        <div className="loading-container">
+            <div className="loader"></div>
+            <p className="loading-message">در حال بارگذاری...</p>
+        </div>
+    );
+
 
     if (!stats) {
-        return <div className="typo-loading">آماری برای نمایش پیدا نشد.</div>;
+        if (loading) return (
+            <div className="loading-container">
+                <p className="loading-message">آماری برای نمایش پیدا نشد.</p>
+            </div>
+        );
+
     }
     const handleBack = () => {
-        navigate("/");
+        navigate("/profile");
     };
 
     return (
