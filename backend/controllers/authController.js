@@ -5,7 +5,7 @@ const ApiResponse = require("../utils/ApiResponse");
 const generateOTP = require("../utils/Otp");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const sendOtpSms = require("../utils/smsProvider");
+const sendOtpSms = require("../utils/SmsProvider");
 
 
 

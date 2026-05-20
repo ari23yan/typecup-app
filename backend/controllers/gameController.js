@@ -2,6 +2,7 @@ const TypingScore = require('../models/TypingScore');
 const Word = require('../models/Word');
 const ApiResponse = require('../utils/ApiResponse');
 const MESSAGES = require("../constants/responseMessages");
+const { getCurrentJalaaliSeason, getSeasonName } = require('../utils/SeasonHelper');
 
 exports.getWordsByWave = async (req, res) => {
     try {
@@ -36,56 +37,131 @@ exports.getWordsByWave = async (req, res) => {
     }
 };
 
-
 exports.saveGameResult = async (req, res) => {
     try {
         const userId = req.user.id;
-        const {
-            wpm,
-            accuracy,
-            duration,
-            waveReached,
-            correctWords,
-            errors,
-            score
-        } = req.body;
+        const currentSeason = getCurrentJalaaliSeason();
+
+        const { wpm, accuracy, duration, waveReached, correctWords, errors, score } = req.body;
 
         const typingScore = new TypingScore({
             user: userId,
-            score: score,
+            score,
             wpm: Math.round(wpm),
             accuracy: parseFloat(accuracy.toFixed(1)),
             duration: Math.round(duration),
             waveReached: waveReached || 1,
             correctWords: correctWords || 0,
-            mistakes: errors || 0
+            mistakes: errors || 0,
+            season: {
+                year: currentSeason.year,
+                seasonNumber: currentSeason.seasonNumber
+            }
         });
 
         await typingScore.save();
-        const bestScore = await TypingScore.findOne({
-            user: userId
-        }).sort({ score: -1 }).limit(1);
 
-        const bestWpm = await TypingScore.findOne({
-            user: userId
-        }).sort({ wpm: -1 }).limit(1);
+        return res.json(
+            new ApiResponse(
+                200,
+                MESSAGES.SUCCESS.DEFAULT,
+                null,
+                true
+            )
+        );
+
+
+    } catch (error) {
+        return res.status(500).json(
+            new ApiResponse(
+                500,
+                MESSAGES.ERROR.DEFAULT,
+                null,
+                false
+            )
+        );
+    }
+};
+
+
+exports.getLeaderboard = async (req, res) => {
+    try {
+        const { limit = 10, sortBy = "score", year, seasonNumber } = req.query;
+
+        const validSortFields = ["score", "wpm", "avgAccuracy", "waveReached"];
+        const sortField = validSortFields.includes(sortBy) ? sortBy : "score";
+
+        const currentSeason = getCurrentJalaaliSeason();
+
+        const selectedYear = year ? parseInt(year) : currentSeason.year;
+        const selectedSeasonNumber = seasonNumber ? parseInt(seasonNumber) : currentSeason.seasonNumber;
+
+        const leaderboard = await TypingScore.aggregate([
+            {
+                $match: {
+                    "season.year": selectedYear,
+                    "season.seasonNumber": selectedSeasonNumber
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "user",
+                    foreignField: "_id",
+                    as: "user"
+                }
+            },
+            { $unwind: "$user" },
+            {
+                $group: {
+                    _id: "$user._id",
+                    user: { $first: "$user" },
+                    score: { $max: "$score" },
+                    wpm: { $max: "$wpm" },
+                    avgAccuracy: { $avg: "$accuracy" },
+                    waveReached: { $max: "$waveReached" },
+                    lastPlayed: { $max: "$createdAt" }
+                }
+            },
+            {
+                $sort: {
+                    [sortField]: -1
+                }
+            },
+            {
+                $limit: parseInt(limit)
+            }
+        ]);
+
+        const formattedLeaderboard = leaderboard.map(item => ({
+            userId: item._id,
+            score: item.score,
+            wpm: item.wpm,
+            avgAccuracy: item.avgAccuracy ? Math.round(item.avgAccuracy * 10) / 10 : 0,
+            waveReached: item.waveReached,
+            lastPlayed: item.lastPlayed,
+            user: {
+                userName: item.user.userName
+            }
+        }));
 
         return res.json(
             new ApiResponse(
                 200,
                 MESSAGES.SUCCESS.DEFAULT,
                 {
-                    scoreId: typingScore._id,
-                    finalScore: score,
-                    isNewScoreRecord: bestScore && bestScore.score > score ? false : true,
-                    isNewWpmRecord: bestWpm && bestWpm.wpm > wpm ? false : true,
-                    message: this.getRecordMessage(bestScore, bestWpm, score, wpm)
+                    season: {
+                        year: selectedYear,
+                        seasonNumber: selectedSeasonNumber,
+                        label: getSeasonName(selectedSeasonNumber) + "     " + selectedYear
+                    },
+                    items: formattedLeaderboard
                 },
                 true
             )
         );
-
     } catch (error) {
+        console.error("Leaderboard error:", error); // برای دیباگ
         return res.status(500).json(
             new ApiResponse(
                 500,
@@ -97,93 +173,42 @@ exports.saveGameResult = async (req, res) => {
     }
 };
 
-exports.getRecordMessage = (bestScore, bestWpm, currentScore, currentWpm) => {
-    const isNewScoreRecord = !bestScore || bestScore.score < currentScore;
-    const isNewWpmRecord = !bestWpm || bestWpm.wpm < currentWpm;
-    if (isNewScoreRecord && isNewWpmRecord) {
-        return MESSAGES.SUCCESS.NEW_RECORD_WPM_SCORE;
-    } else if (isNewScoreRecord) {
-        return MESSAGES.SUCCESS.NEW_RECORD_SCORE;
-    } else if (isNewWpmRecord) {
-        return MESSAGES.SUCCESS.NEW_RECORD_WPM;
-    }
-    return MESSAGES.SUCCESS.SCORE_SAVED;
-};
-
-exports.getLeaderboard = async (req, res) => {
+exports.getSeasons = async (req, res) => {
     try {
-        const { limit = 10, sortBy = 'score' } = req.query;
 
-        const validSortFields = ['score', 'wpm', 'accuracy', 'waveReached'];
-        const sortField = validSortFields.includes(sortBy) ? sortBy : 'score';
-
-        const sortOrder = -1; 
-
-        const leaderboard = await TypingScore.aggregate([
-            {
-                $lookup: {
-                    from: 'users',
-                    localField: 'user',
-                    foreignField: '_id',
-                    as: 'user'
-                }
-            },
-            { $unwind: '$user' },
-
+        const seasons = await TypingScore.aggregate([
             {
                 $group: {
-                    _id: '$user._id',
-                    user: { $first: '$user' },
-                    score: { $max: '$score' },
-                    wpm: { $max: '$wpm' },
-                    avgAccuracy: { $avg: '$accuracy' },
-                    waveReached: { $max: '$waveReached' },
-                    lastPlayed: { $max: '$createdAt' }
+                    _id: {
+                        year: "$season.year",
+                        seasonNumber: "$season.seasonNumber"
+                    }
                 }
             },
-
             {
                 $sort: {
-                    [sortField]: sortOrder
-                }
-            },
-
-            { $limit: parseInt(limit) },
-
-            {
-                $project: {
-                    _id: 0,
-                    userId: '$_id',
-                    score: 1,
-                    wpm: 1,
-                    avgAccuracy: {
-                        $divide: [
-                            { $trunc: { $multiply: ['$avgAccuracy', 100] } },
-                            100
-                        ]
-                    },
-                    waveReached: 1,
-                    lastPlayed: 1,
-                    user: {
-                        _id: 1,
-                        userName: 1,
-                        email: 1
-                    }
+                    "_id.year": -1,
+                    "_id.seasonNumber": -1
                 }
             }
         ]);
+
+        const formatted = seasons.map(s => ({
+            year: s._id.year,
+            seasonNumber: s._id.seasonNumber,
+            label: `${getSeasonName(s._id.seasonNumber)} ${s._id.year}`
+        }));
 
         return res.json(
             new ApiResponse(
                 200,
                 MESSAGES.SUCCESS.DEFAULT,
-                leaderboard,
+                formatted,
                 true
             )
         );
 
     } catch (error) {
-        console.error(error);
         return res.status(500).json(
             new ApiResponse(
                 500,
@@ -194,3 +219,5 @@ exports.getLeaderboard = async (req, res) => {
         );
     }
 };
+
+

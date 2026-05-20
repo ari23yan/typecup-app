@@ -8,12 +8,10 @@ export const saveGameResult = async (gameData) => {
   return await apiClient.post("/game/save-result", gameData);
 };
 
-export const getLeaderboard = async (limit = 10, textId = null) => {
-  let url = `/game/leaderboard?limit=${limit}`;
+export const getLeaderboard = async (params = {}) => {
+  return await apiClient.get("/game/leaderboard", params);
+};
 
-  if (textId) {
-    url += `&textId=${textId}`;
-  }
-
-  return await apiClient.get(url);
+export const getLeaderboardSeasons = async () => {
+  return await apiClient.get("/game/leaderboard/seasons");
 };

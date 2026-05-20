@@ -247,7 +247,7 @@ export default function AuthModal({
 
         try {
             setLoginLoading(true);
-
+            debugger
             const data = await login(phone, password);
 
             if (data.success) {

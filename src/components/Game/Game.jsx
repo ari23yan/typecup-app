@@ -58,6 +58,11 @@ export default function Game({ onBack }) {
     const isEndingRef = useRef(false);
     const [wordsLoaded, setWordsLoaded] = useState(false);
     const usedWordsRef = useRef(new Set());
+    const failLineRef = useRef(null);
+    const wordRefs = useRef({});
+    const handledCollisionsRef = useRef(new Set());
+    const spawnIndexRef = useRef(0);
+    const errorsRef = useRef(0);
 
     const [playClick] = useSound(clickSound, { volume: .6 });
     const [playError] = useSound(errorSound, { volume: .6 });
@@ -119,35 +124,30 @@ export default function Game({ onBack }) {
 
     async function endGame() {
         if (gameOver || isEndingRef.current) return;
+
+        if (waveTransitionTimeout) {
+            clearTimeout(waveTransitionTimeout);
+        }
+        setShowWaveText(false);
+
         isEndingRef.current = true;
         setGameOver(true);
 
-        if (spawnIntervalRef.current) {
-            clearInterval(spawnIntervalRef.current);
-            spawnIntervalRef.current = null;
-        }
+        if (spawnIntervalRef.current) clearInterval(spawnIntervalRef.current);
 
-        let finalTime = totalTime;
-        if (startTime && !totalTime) {
-            const end = Date.now();
-            finalTime = ((end - startTime) / 1000).toFixed(1);
-            setTotalTime(finalTime);
-        }
+        setGameOver(true);
+        setErrors(3);
 
-        // محاسبه WPM
-        const calculatedWpm = Math.round((correctWords / (finalTime / 60)) || 0);
-        const calculatedAccuracy = correctWords + errors > 0
-            ? (correctWords / (correctWords + errors)) * 100
-            : 100;
-
+        const finalTime = totalTime || ((Date.now() - startTime) / 1000).toFixed(1);
+        setTotalTime(finalTime);
         try {
             const response = await saveGameResult({
-                wpm: calculatedWpm,
-                accuracy: parseFloat(calculatedAccuracy.toFixed(1)),
+                wpm: Math.round((correctWords / (finalTime / 60)) || 0),
+                accuracy: (correctWords + errorsRef.current > 0) ? (correctWords / (correctWords + errorsRef.current)) * 100 : 100,
                 duration: Math.round(parseFloat(finalTime)),
                 waveReached: wave,
                 correctWords: correctWords,
-                errors: errors,
+                errors: errorsRef.current,
                 score: score
             });
 
@@ -155,11 +155,12 @@ export default function Game({ onBack }) {
                 setSavedResult(response.data.data);
             }
         } catch (error) {
-            console.error("Error saving result:", error);
+            console.error("خطا در ثبت:", error);
+        } finally {
+            setShowModal(true);
         }
-
-        setShowModal(true);
     }
+
 
     const checkAndEndGame = (newErrors) => {
         if (newErrors >= 3 && !gameOver && !isEndingRef.current) {
@@ -265,15 +266,19 @@ export default function Game({ onBack }) {
         return bestX;
     }
 
+    const spawnPatterns = {
+        1: [1, 1, 1, 2],
+        2: [1, 2, 1, 2],
+        3: [2, 1, 2, 2],
+        4: [2, 2, 3],
+        5: [3, 2, 3]
+    };
 
-
-    function getSpawnCount(multi) {
-        const rnd = Math.random();
-        if (wave === 1) return rnd < 0.7 ? 1 : 2;
-        if (wave === 2) return rnd < 0.4 ? 1 : 2;
-        if (wave === 3) return rnd < 0.3 ? 1 : (rnd < 0.8 ? 2 : 3);
-        if (wave === 4) return rnd < 0.5 ? 2 : 3;
-        return 3;
+    function getSpawnCount() {
+        const pattern = spawnPatterns[wave];
+        const count = pattern[spawnIndexRef.current % pattern.length];
+        spawnIndexRef.current++;
+        return count;
     }
 
     function getWaveConfig() {
@@ -330,6 +335,8 @@ export default function Game({ onBack }) {
     const startWave = (newWave) => {
         if (gameOver) return;
         usedWordsRef.current.clear();
+        handledCollisionsRef.current.clear();
+
 
         setIsWaveTransition(true);
         setShowWaveText(true);
@@ -370,11 +377,12 @@ export default function Game({ onBack }) {
         }
     }, [fallingWords, pendingWave, isWaveTransition]);
 
+
     useEffect(() => {
         if (!started || gameOver || isWaveTransition || pendingWave || wordsLoading || !wordsLoaded) return;
 
         if (spawnIntervalRef.current) {
-            clearInterval(spawnIntervalRef.current);
+            clearTimeout(spawnIntervalRef.current);
         }
 
         const config = getWaveConfig();
@@ -383,14 +391,15 @@ export default function Game({ onBack }) {
             setFallingWords(prev => {
                 if (prev.length >= getMaxConcurrentWords()) return prev;
 
-                const count = getSpawnCount(config.multi);
+                const count = getSpawnCount();
                 let updated = [...prev];
 
                 for (let i = 0; i < count && updated.length < getMaxConcurrentWords(); i++) {
                     const newX = generateSafeX(updated);
                     const wordText = randomWord(updated);
+
                     if (!wordText) continue;
-                    if (newX === null) continue;
+
                     const newWord = {
                         id: Date.now() + Math.random() + i,
                         text: wordText,
@@ -398,62 +407,92 @@ export default function Game({ onBack }) {
                         duration: config.speed,
                         createdAt: Date.now()
                     };
+
                     updated.push(newWord);
                 }
+
                 return updated;
             });
         };
 
-        spawnIntervalRef.current = setInterval(spawnWord, config.spawn);
+        const scheduleSpawn = () => {
+            const jitter = Math.random() * 300;
+            const delay = config.spawn + jitter;
+
+            spawnIntervalRef.current = setTimeout(() => {
+                spawnWord();
+                scheduleSpawn();
+            }, delay);
+        };
+
+        scheduleSpawn();
 
         return () => {
             if (spawnIntervalRef.current) {
-                clearInterval(spawnIntervalRef.current);
+                clearTimeout(spawnIntervalRef.current);
                 spawnIntervalRef.current = null;
             }
         };
+
     }, [started, gameOver, isWaveTransition, wave, pendingWave, wordBank]);
 
-    // تایمر حذف کلمات
+
+
+
     useEffect(() => {
         if (!started || gameOver) return;
 
-        const checkInterval = setInterval(() => {
-            const now = Date.now();
+        const checkCollision = () => {
+            if (!failLineRef.current) return;
+
+            const failLineTop = failLineRef.current.getBoundingClientRect().top;
             const wordsToRemove = [];
 
             fallingWords.forEach(word => {
-                if (now - word.createdAt >= word.duration * 1000) {
-                    wordsToRemove.push(word.id);
-                }
-            });
+                if (handledCollisionsRef.current.has(word.id)) return;
 
-            if (wordsToRemove.length > 0) {
-                wordsToRemove.forEach(id => {
+                const el = wordRefs.current[word.id];
+                if (!el) return;
+
+                const rect = el.getBoundingClientRect();
+
+                if (rect.bottom >= failLineTop) {
+                    handledCollisionsRef.current.add(word.id);
+                    wordsToRemove.push(word.id);
+
                     if (!gameOver && !isEndingRef.current) {
                         playError();
 
-                        setErrors(prev => {
-                            if (prev >= 3) return prev;
-                            const newErrors = prev + 1;
-                            checkAndEndGame(newErrors);
-                            return newErrors;
-                        });
+                        // آپدیت کردن رفرنس و State
+                        errorsRef.current += 1;
+                        setErrors(errorsRef.current);
 
-                        if (activeWordId === id) {
+                        // چک کردن پایان بازی
+                        if (errorsRef.current >= 3) {
+                            endGame(); // اینجا endGame اجرا می‌شود
+                        }
+
+                        if (activeWordId === word.id) {
                             setActiveWordId(null);
                             setProgress(0);
                             isProcessingRef.current = false;
                         }
                     }
-                });
+                }
+            });
 
+            if (wordsToRemove.length > 0) {
                 setFallingWords(prev => prev.filter(w => !wordsToRemove.includes(w.id)));
             }
-        }, 100);
 
-        return () => clearInterval(checkInterval);
+            requestAnimationFrame(checkCollision);
+        };
+
+
+        const id = requestAnimationFrame(checkCollision);
+        return () => cancelAnimationFrame(id);
     }, [started, gameOver, fallingWords, activeWordId]);
+
 
     useEffect(() => {
         if (!started || gameOver || isWaveTransition) return;
@@ -529,7 +568,6 @@ export default function Game({ onBack }) {
                         const newScore = prevScore + gained;
                         const threshold = getWaveScoreThreshold(wave);
 
-                        // بررسی ارتقای مرحله
                         if (newScore >= threshold && wave < maxWave && !pendingWave && !isWaveTransition) {
                             setPendingWave(wave + 1);
                         }
@@ -629,7 +667,7 @@ export default function Game({ onBack }) {
 
             {started && (
                 <>
-                    {showWaveText && !wordsLoading && (
+                    {started && showWaveText && !wordsLoading && !gameOver && (
                         <div className="wave-popup"> مرحله {wave} </div>
                     )}
 
@@ -656,12 +694,14 @@ export default function Game({ onBack }) {
                     {fallingWords.map(word => (
                         <div
                             key={word.id}
+                            ref={(el) => (wordRefs.current[word.id] = el)}
                             className="falling-word"
                             style={{
                                 left: `${word.x}%`,
                                 animationDuration: `${word.duration}s`
                             }}
                         >
+
                             {word.text.split("").map((char, i) => (
                                 <span
                                     key={i}
@@ -674,7 +714,7 @@ export default function Game({ onBack }) {
                             ))}
                         </div>
                     ))}
-                    <div className="fail-line"></div>
+                    <div className="fail-line" ref={failLineRef}></div>
                 </>
             )}
 
@@ -689,12 +729,10 @@ export default function Game({ onBack }) {
                         </h2>
                         <div className="modal-stats">
                             <p><FaStar className="icon" /> امتیاز نهایی: {score}</p>
+                            <p><FaKeyboard className="icon" /> مرحله : {wave}</p>
                             <p><FaCheckCircle className="icon" /> کلمات صحیح: {correctWords}</p>
                             <p><FaTimesCircle className="icon" /> خطاها: {Math.min(errors, 3)}</p>
                             <p><FaClock className="icon" /> زمان: {totalTime} ثانیه</p>
-                            <p><FaBolt className="icon" /> سرعت تایپ: {Math.round(calculatedWpm)} WPM</p>
-                            <p><FaBullseye className="icon" /> دقت: {Math.round(calculatedAccuracy)}%</p>
-                            <p><FaKeyboard className="icon" /> مرحله رسیده: {wave}</p>
                         </div>
                         {savedResult?.message && (
                             <p className="record-message">{savedResult.message}</p>
