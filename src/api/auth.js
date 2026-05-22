@@ -9,14 +9,9 @@ export const verifyOtp = async (phone, code) => {
 };
 
 export const login = async (phone, password) => {
-    const result = await apiClient.post("/auth/login", { phone, password });
-
-    if (!result.error && result.token) {
-        localStorage.setItem("token", result.token);
-    }
-
-    return result;
+    return await apiClient.post("/auth/login", { phone, password });
 };
+
 
 export const register = async (userData) => {
     return await apiClient.post("/auth/register", userData);

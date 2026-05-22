@@ -242,25 +242,22 @@ export default function AuthModal({
     };
 
     const handleLogin = async () => {
-
         if (loginLoading) return;
 
         try {
             setLoginLoading(true);
-            debugger
             const data = await login(phone, password);
 
-            if (data.success) {
-                toast.success(data.message);
+            if (data && data.success) {
                 localStorage.setItem("token", data.data.token);
-
+                toast.success(data.message || "خوش آمدید");
                 onClose();
                 onSuccessAuthenticate();
-
             } else {
-                toast.error(data.message);
+                toast.error(data?.message || "خطای ناشناخته");
             }
-
+        } catch (err) {
+            toast.error("خطای ارتباط با سرور");
         } finally {
             setLoginLoading(false);
         }
@@ -274,11 +271,12 @@ export default function AuthModal({
             toast.error("نام باید فارسی و کمتر از 20 کاراکتر باشد");
             return;
         }
-
+        
         if (!validateUsername(userName)) {
-            toast.error("نام کاربری باید انگلیسی و کمتر از 20 کاراکتر باشد");
+            toast.error("نام کاربری باید انگلیسی، بدون فاصله و کمتر از ۲۰ کاراکتر باشد");
             return;
         }
+
 
         if (!validateEmail(email)) {
             toast.error("ایمیل معتبر نیست");

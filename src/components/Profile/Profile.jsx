@@ -504,7 +504,11 @@ export default function Profile() {
                         ) : (
                             scores.map((s, i) => (
                                 <div className="score-card" dir="rtl" key={i}>
-                                    <div className="score-header">رکورد {toPersianNumbers((i + 1).toString())}</div>
+                                    <div className="score-header">رکورد {toPersianNumbers((i + 1).toString())}
+                                        <span className="leaderboard-season-badge float-left">
+                                            فصل : <strong>{s.seasonLabel}</strong>
+                                        </span>
+                                    </div>
                                     <div className="score-row">
                                         <span className="score-label">امتیاز:</span>
                                         <span className="score-value">{toPersianNumbers(s.score.toString())}</span>

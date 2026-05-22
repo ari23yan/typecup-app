@@ -2,13 +2,14 @@ const User = require("../models/User");
 const TypingScore = require("../models/TypingScore");
 const ApiResponse = require("../utils/ApiResponse");
 const MESSAGES = require("../constants/responseMessages");
+const { getSeasonName } = require("../utils/SeasonHelper");
 
 exports.getProfile = async (req, res) => {
     try {
 
         const userId = req.user.id;
 
-        const user = await User.findById(userId).select("-password -__v -_id");
+        const user = await User.findById(userId).select("-password -__v -_id -updatedAt -createdAt");
 
         if (!user) {
             return res.status(404).json(
@@ -23,9 +24,16 @@ exports.getProfile = async (req, res) => {
 
         const lastScores = await TypingScore.find({ user: userId })
             .select("-_id -user -updatedAt -__v")
-            .sort({ wpm: -1, createdAt: -1 })
+            .sort({ createdAt: -1 })
             .limit(10);
 
+        const formattedScores = lastScores.map(score => {
+            const scoreObj = score.toObject();
+            return {
+                ...scoreObj,
+                seasonLabel: `${getSeasonName(scoreObj.season.seasonNumber)} - ${scoreObj.season.year}`
+            };
+        });
 
         return res.json(
             new ApiResponse(
@@ -33,7 +41,7 @@ exports.getProfile = async (req, res) => {
                 MESSAGES.SUCCESS.DEFAULT,
                 {
                     user,
-                    lastScores
+                    lastScores: formattedScores
                 },
                 true
             )

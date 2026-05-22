@@ -39,13 +39,9 @@ const typingScoreSchema = new mongoose.Schema({
         default: 0
     },
     season: {
-        year: { type: Number },
-        seasonNumber: { type: Number }
+        year: { type: Number, required: true },
+        seasonNumber: { type: Number, required: true }
     }
-    //     season: {
-    //     year: { type: Number, required: true },
-    //     seasonNumber: { type: Number, required: true }
-    // }
 }, {
     timestamps: true
 });

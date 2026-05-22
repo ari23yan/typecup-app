@@ -135,7 +135,7 @@
     flex-direction: column;
     gap: 10px;
 
-    max-height: 250px;
+    max-height: 450px;
     overflow-y: auto;
     padding-right: 5px;
     padding-top: 5px;
@@ -156,7 +156,7 @@
 
 
 .score-list {
-    max-height: 260px;
+    max-height: 460px;
     overflow-y: auto;
     padding-right: 6px;
     display: flex;
@@ -471,4 +471,8 @@
 .typo-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+}
+
+.float-left {
+    float: left;
 }
