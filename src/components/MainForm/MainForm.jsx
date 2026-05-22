@@ -1,9 +1,11 @@
-import { FaTrophy } from "react-icons/fa";
+import { FaTrophy, FaFutbol } from "react-icons/fa";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import AuthModal from "../Auth/Auth";
 import "./MainForm.css";
 import "@fontsource/orbitron/700.css";
+import { IoIosFootball } from "react-icons/io";
+
 
 export default function MainForm() {
   const [showAbout, setShowAbout] = useState(false);
@@ -36,12 +38,20 @@ export default function MainForm() {
         </h1>
 
         {isAuthenticated ? (
-          <Link to="/game" className="menu-btn" style={{ textDecoration: 'none' }}>
-            شروع بازی
-          </Link>
+          <>
+            <Link to="/game" className="menu-btn" style={{ textDecoration: 'none' }}>
+              شروع بازی
+            </Link>
+            <Link className="menu-btn world-cup-title disabled-btn">
+              <p className="soon-tag">بزودی</p>
+              Word Cup 2026
+              <FaFutbol className="icon" style={{ fontSize: '1.5rem', color: '#ffcc00' }} />
+            </Link>
+          </>
         ) : (
           <></>
         )}
+
 
         <Link to="/demo" className="menu-btn" style={{ textDecoration: 'none' }}>
           دمو
