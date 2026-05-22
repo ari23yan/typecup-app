@@ -17,8 +17,6 @@ import {
     FaChevronDown,
     FaStar,
     FaTimesCircle,
-    FaBolt,
-    FaBullseye,
     FaList
 } from "react-icons/fa";
 
@@ -63,6 +61,7 @@ export default function Game({ onBack }) {
     const handledCollisionsRef = useRef(new Set());
     const spawnIndexRef = useRef(0);
     const errorsRef = useRef(0);
+    const preloadedWavesRef = useRef(new Set());
 
     const [playClick] = useSound(clickSound, { volume: .6 });
     const [playError] = useSound(errorSound, { volume: .6 });
@@ -73,9 +72,9 @@ export default function Game({ onBack }) {
         navigate("/");
     };
 
-    const loadWords = async (waveNum) => {
+    const loadWords = async (waveNum, isBackground = false) => {
         try {
-            setWordsLoading(true);
+            if (!isBackground) setWordsLoading(true);
 
             const response = await getWordsByWave(waveNum);
 
@@ -110,17 +109,9 @@ export default function Game({ onBack }) {
 
     useEffect(() => {
         if (started && wordBank.length === 0) {
-            loadWords(1).then(() => {
-                if (maxWave > 1) loadWords(2);
-            });
+            loadWords(1);
         }
     }, [started]);
-
-    useEffect(() => {
-        if (started && wave > 1 && wave < maxWave) {
-            loadWords(wave + 1);
-        }
-    }, [wave]);
 
     async function endGame() {
         if (gameOver || isEndingRef.current) return;
@@ -181,10 +172,10 @@ export default function Game({ onBack }) {
 
         return c
             .normalize("NFKC")
-            .replace(/[\u064B-\u065F]/g, "") // حذف اعراب
-            .replace(/\u200c/g, "") // حذف نیم‌فاصله
-            .replace(/\u200f/g, "") // حذف RTL mark
-            .replace(/\u200e/g, "") // حذف LTR mark
+            .replace(/[\u064B-\u065F]/g, "")
+            .replace(/\u200c/g, "")
+            .replace(/\u200f/g, "")
+            .replace(/\u200e/g, "")
             .replace(/[يىئ]/g, "ی")
             .replace(/[ك]/g, "ک")
             .replace(/[أإآ]/g, "ا")
@@ -568,6 +559,14 @@ export default function Game({ onBack }) {
                         const newScore = prevScore + gained;
                         const threshold = getWaveScoreThreshold(wave);
 
+                        // --- منطق جدید برای پیش‌بارگذاری ---
+                        const nextWave = wave + 1;
+                        // اگر امتیاز به حدود ۸۰٪ آستانه مرحله فعلی رسید و هنوز مرحله بعد را لود نکردیم
+                        if (newScore >= threshold * 0.8 && !preloadedWavesRef.current.has(nextWave) && nextWave <= maxWave) {
+                            preloadedWavesRef.current.add(nextWave);
+                            loadWords(nextWave, true);
+                        }
+
                         if (newScore >= threshold && wave < maxWave && !pendingWave && !isWaveTransition) {
                             setPendingWave(wave + 1);
                         }
@@ -608,11 +607,6 @@ export default function Game({ onBack }) {
     const goToResults = () => {
         navigate("/leaderboard");
     };
-
-    const calculatedWpm = correctWords / (totalTime / 60) || 0;
-    const calculatedAccuracy = correctWords + errors > 0
-        ? (correctWords / (correctWords + errors)) * 100
-        : 100;
 
     return (
         <div className="game">
