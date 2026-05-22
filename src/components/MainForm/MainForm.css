@@ -176,7 +176,7 @@
 
 .soon-tag {
   position: absolute;
-  top: -6px;
+  top: -22px;
   right: -6px;
   font-size: 15px;
   background: #ff9800;
@@ -189,7 +189,7 @@
   font-size: 28px;
   font-weight: 700;
   font-family: 'Orbitron', sans-serif;
-  /* border-bottom: 2px solid #ff9800; */
+  text-decoration : none
 }
 
 .icon-wordCup{
