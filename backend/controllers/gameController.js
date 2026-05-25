@@ -3,6 +3,72 @@ const Word = require('../models/Word');
 const ApiResponse = require('../utils/ApiResponse');
 const MESSAGES = require("../constants/responseMessages");
 const { getCurrentJalaaliSeason, getSeasonName } = require('../utils/SeasonHelper');
+const crypto = require('crypto');
+
+exports.saveGameResult = async (req, res) => {
+    try {
+
+        const { score, wpm, correctWords,duration,accuracy,waveReached,errors, signature } = req.body;
+        const secretKey = process.env.GAME_SECRET_KEY;
+
+        const expectedData = `${score}-${correctWords}-${wpm}`;
+        const expectedSignature = crypto
+            .createHmac('sha256', secretKey)
+            .update(expectedData)
+            .digest('hex');
+
+        if (signature !== expectedSignature) {
+            return res.status(401).json({ message: "دیتای ارسالی دستکاری شده است!" });
+        }
+
+        const userId = req.user.id;
+        const currentSeason = getCurrentJalaaliSeason();
+
+        if (score > (correctWords * 10)) {
+            return res.status(400).json(new ApiResponse(400, "دیتای ارسالی نامعتبر است (Score Mismatch)", null, false));
+        }
+
+        if (wpm > 200) {
+            return res.status(400).json(new ApiResponse(400, "سرعت تایپ غیرطبیعی شناسایی شد.", null, false));
+        }
+
+        const minTimeRequired = (correctWords * 0.5);
+        if (duration < minTimeRequired && correctWords > 5) {
+            return res.status(400).json(new ApiResponse(400, "زمان بازی با تعداد کلمات همخوانی ندارد.", null, false));
+        }
+
+        if (accuracy > 100 || accuracy < 0) {
+            return res.status(400).json(new ApiResponse(400, "دقت نامعتبر.", null, false));
+        }
+
+        const typingScore = new TypingScore({
+            user: userId,
+            score,
+            wpm: Math.round(wpm),
+            accuracy: parseFloat(accuracy.toFixed(1)),
+            duration: Math.round(duration),
+            waveReached: waveReached || 1,
+            correctWords: correctWords || 0,
+            mistakes: errors || 0,
+            season: {
+                year: currentSeason.year,
+                seasonNumber: currentSeason.seasonNumber
+            }
+        });
+
+        await typingScore.save();
+
+        const isNewScoreRecord = true;
+
+        return res.json(
+            new ApiResponse(200, MESSAGES.SUCCESS.DEFAULT, { isNewScoreRecord }, true)
+        );
+
+    } catch (error) {
+        console.log("error errorerrorerror",error)
+        return res.status(500).json(new ApiResponse(500, MESSAGES.ERROR.DEFAULT, null, false));
+    }
+};
 
 exports.getWordsByWave = async (req, res) => {
     try {
@@ -25,52 +91,6 @@ exports.getWordsByWave = async (req, res) => {
                 true
             )
         );
-    } catch (error) {
-        return res.status(500).json(
-            new ApiResponse(
-                500,
-                MESSAGES.ERROR.DEFAULT,
-                null,
-                false
-            )
-        );
-    }
-};
-
-exports.saveGameResult = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const currentSeason = getCurrentJalaaliSeason();
-
-        const { wpm, accuracy, duration, waveReached, correctWords, errors, score } = req.body;
-
-        const typingScore = new TypingScore({
-            user: userId,
-            score,
-            wpm: Math.round(wpm),
-            accuracy: parseFloat(accuracy.toFixed(1)),
-            duration: Math.round(duration),
-            waveReached: waveReached || 1,
-            correctWords: correctWords || 0,
-            mistakes: errors || 0,
-            season: {
-                year: currentSeason.year,
-                seasonNumber: currentSeason.seasonNumber
-            }
-        });
-
-        await typingScore.save();
-
-        return res.json(
-            new ApiResponse(
-                200,
-                MESSAGES.SUCCESS.DEFAULT,
-                null,
-                true
-            )
-        );
-
-
     } catch (error) {
         return res.status(500).json(
             new ApiResponse(

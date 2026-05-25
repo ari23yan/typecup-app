@@ -62,6 +62,9 @@ export default function Game({ onBack }) {
     const spawnIndexRef = useRef(0);
     const errorsRef = useRef(0);
     const preloadedWavesRef = useRef(new Set());
+    const secureScoreRef = useRef(0);
+    const startTimeRef = useRef(null);
+    const totalTypedRef = useRef(0);
 
     const [playClick] = useSound(clickSound, { volume: .6 });
     const [playError] = useSound(errorSound, { volume: .6 });
@@ -116,51 +119,66 @@ export default function Game({ onBack }) {
     async function endGame() {
         if (gameOver || isEndingRef.current) return;
 
-        if (waveTransitionTimeout) {
-            clearTimeout(waveTransitionTimeout);
-        }
-        setShowWaveText(false);
-
         isEndingRef.current = true;
-        setGameOver(true);
 
-        if (spawnIntervalRef.current) clearInterval(spawnIntervalRef.current);
+        if (spawnIntervalRef.current) clearTimeout(spawnIntervalRef.current);
+        if (endGameTimeoutRef.current) clearTimeout(endGameTimeoutRef.current);
+        spawnIntervalRef.current = null;
 
-        setGameOver(true);
-        setErrors(3);
+        const now = Date.now();
+        const finalTime = Math.max(1, (now - (startTimeRef.current || now)) / 1000);
 
-        const finalTime = totalTime || ((Date.now() - startTime) / 1000).toFixed(1);
-        setTotalTime(finalTime);
+        if (score !== secureScoreRef.current) {
+            toast.error("خطای امنیتی شناسایی شد.");
+            setGameOver(true);
+            setFallingWords([]);
+            return;
+        }
+
+        const finalScore = secureScoreRef.current;
+        const finalWpm = Math.round((correctWords / (finalTime / 60)) || 0);
+        const finalAccuracy = totalTypedRef.current > 0
+            ? parseFloat(((correctWords / totalTypedRef.current) * 100).toFixed(1))
+            : 0;
+
         try {
             const response = await saveGameResult({
-                wpm: Math.round((correctWords / (finalTime / 60)) || 0),
-                accuracy: (correctWords + errorsRef.current > 0) ? (correctWords / (correctWords + errorsRef.current)) * 100 : 100,
-                duration: Math.round(parseFloat(finalTime)),
+                wpm: finalWpm,
+                accuracy: finalAccuracy,
+                duration: Math.round(finalTime),
                 waveReached: wave,
                 correctWords: correctWords,
                 errors: errorsRef.current,
-                score: score
+                score: finalScore
             });
 
-            if (response?.data?.success) {
-                setSavedResult(response.data.data);
+            if (response.success) {
+                setSavedResult({
+                    ...response.data,
+                    score: finalScore,
+                    wpm: finalWpm,
+                    accuracy: finalAccuracy,
+                    duration: Math.round(finalTime)
+                });
+                setTotalTime(Math.round(finalTime));
+                setGameOver(true);
+                setShowModal(true);
+            } else {
+                toast.error(response.message || "خطا در ثبت امتیاز.");
+                setGameOver(true);
+                setTimeout(() => navigate("/"), 1000);
             }
         } catch (error) {
-            console.error("خطا در ثبت:", error);
+            console.error("EndGame Error:", error);
+            toast.error("خطا در برقراری ارتباط با سرور.");
+            setGameOver(true);
+            setTimeout(() => navigate("/"), 1000);
+
         } finally {
-            setShowModal(true);
+            setFallingWords([]);
         }
     }
 
-
-    const checkAndEndGame = (newErrors) => {
-        if (newErrors >= 3 && !gameOver && !isEndingRef.current) {
-            if (endGameTimeoutRef.current) {
-                clearTimeout(endGameTimeoutRef.current);
-            }
-            endGameTimeoutRef.current = setTimeout(() => endGame(), 50);
-        }
-    };
 
     function getWordList() {
         if (wordBank.length > 0) return wordBank;
@@ -357,8 +375,13 @@ export default function Game({ onBack }) {
     }
 
     useEffect(() => {
-        if (started && !gameOver) setStartTime(Date.now());
+        if (started && !gameOver) {
+            const now = Date.now();
+            setStartTime(now);
+            startTimeRef.current = now;
+        }
     }, [started]);
+
 
     useEffect(() => {
         if (pendingWave && fallingWords.length === 0 && !isWaveTransition) {
@@ -489,6 +512,12 @@ export default function Game({ onBack }) {
         if (!started || gameOver || isWaveTransition) return;
 
         const handleKeyDown = (e) => {
+            if (e.isTrusted === false) {
+                toast.error("استفاده از ابزارهای خودکار مجاز نیست!");
+                endGame();
+                return;
+            }
+
             if (gameOver || isWaveTransition) return;
             if (isProcessingRef.current) return;
 
@@ -498,6 +527,8 @@ export default function Game({ onBack }) {
             }
 
             if (e.key.length !== 1) return;
+
+            totalTypedRef.current += 1;
 
             if (!activeWordId) {
                 if (!checkKeyboardLanguage(e, null)) {
@@ -557,6 +588,8 @@ export default function Game({ onBack }) {
 
                     setScore(prevScore => {
                         const newScore = prevScore + gained;
+                        secureScoreRef.current = newScore;
+
                         const threshold = getWaveScoreThreshold(wave);
 
                         // --- منطق جدید برای پیش‌بارگذاری ---
