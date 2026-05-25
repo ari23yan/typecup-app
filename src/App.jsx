@@ -8,6 +8,7 @@ import Game from './components/Game/Game';
 import TypographyPage from './pages/TypographyPage';
 import { isMobile } from "react-device-detect";
 import { Toaster } from "react-hot-toast";
+import "flag-icons/css/flag-icons.min.css";
 import './App.css';
 
 function ProtectedRoute({ children }) {
