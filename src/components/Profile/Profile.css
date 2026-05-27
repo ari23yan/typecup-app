@@ -25,14 +25,16 @@
 
 .profile-card {
     width: 420px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow: hidden;
     padding: 30px;
     border-radius: 20px;
     backdrop-filter: blur(12px);
     background: rgba(255, 255, 255, 0.12);
     border: 1px solid rgba(255, 255, 255, 0.22);
-    box-shadow: 0 15px 14px rgb(0 0 0 / 10%);
-    animation: popIn 0.3s ease;
-    text-align: right;
+    display: flex;
+    flex-direction: column;
 }
 
 @keyframes popIn {
@@ -81,10 +83,16 @@
 }
 
 .score-list {
+    margin-top: 10px;
     display: flex;
     flex-direction: column;
     gap: 10px;
+    max-height: min(450px, calc(90vh - 380px));
+    overflow-y: auto;
+    padding-right: 5px;
+    padding-top: 5px;
 }
+
 
 .score-card {
     background: rgba(255, 255, 255, 0.12);
@@ -108,60 +116,9 @@
     transition: 0.2s;
 }
 
-
-
 .empty {
     text-align: center;
     opacity: .8;
-}
-
-
-.profile-card {
-    width: 420px;
-    max-height: 85vh;
-    overflow: hidden;
-    padding: 30px;
-    border-radius: 20px;
-    backdrop-filter: blur(12px);
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    display: flex;
-    flex-direction: column;
-}
-
-.score-list {
-    margin-top: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-
-    max-height: 450px;
-    overflow-y: auto;
-    padding-right: 5px;
-    padding-top: 5px;
-}
-
-.score-list::-webkit-scrollbar {
-    width: 6px;
-}
-
-.score-list::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.35);
-    border-radius: 6px;
-}
-
-.score-list::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-
-.score-list {
-    max-height: 460px;
-    overflow-y: auto;
-    padding-right: 6px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
 }
 
 .score-card {

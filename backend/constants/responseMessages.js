@@ -21,7 +21,8 @@ const MESSAGES = {
         INVALID_CREDENTIALS: "رمز عبور صحیح نمی باشد",
         USERNAME_ALREADY_EXIST: "این نام کاربری/ایمیل قبلاً توسط شخص دیگری انتخاب شده است.",
         INVALID_TOKEN: "توکن نامعتبر می باشد",
-        TO_MANY_REQUEST: "تعداد درخواست‌های شما بیش از حد مجاز است لطفاً بعداً تلاش کنید."
+        TO_MANY_REQUEST: "تعداد درخواست‌های شما بیش از حد مجاز است لطفاً بعداً تلاش کنید.",
+        WRONG_SIGNITURE: "درخواست شما معتبر نیست. لطفاً دوباره تلاش کنید."
     }
 };
 module.exports = MESSAGES;

@@ -1,5 +1,6 @@
 import axios from "axios";
 import API_BASE_URL from "../config/api";
+import toast from "react-hot-toast";
 
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
@@ -20,26 +21,35 @@ apiClient.interceptors.response.use(
     (response) => response.data,
     (error) => {
         if (error.response?.status === 429) {
-            return Promise.resolve({
-                success: false,
-                status: 429,
-                message: error.response?.data
-            });
+            toast.error("تعداد درخواست‌ها بیش از حد مجاز است.");
+            return Promise.resolve({ success: false, status: 429 });
         }
 
         if (error.response?.status === 401) {
             localStorage.removeItem("token");
+            
+            toast.error("نشست شما منقضی شده است. در حال انتقال به صفحه اصلی...", {
+                autoClose: 2000 
+            });
+
+            setTimeout(() => {
+                window.location.href = "/";
+            }, 2000);
+
             return Promise.resolve({
                 success: false,
                 status: 401,
-                message: "نشست شما منقضی شده است. لطفاً دوباره وارد شوید."
+                message: "نشست شما منقضی شده است."
             });
         }
+
+        const errorMessage = error.response?.data?.message || "خطایی رخ داد.";
+        toast.error(errorMessage);
 
         return Promise.resolve({
             success: false,
             status: error.response?.status || 0,
-            message: error.response?.data?.message || "خطایی رخ داد."
+            message: errorMessage
         });
     }
 );

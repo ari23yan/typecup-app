@@ -127,15 +127,16 @@ export default function Game({ onBack }) {
 
         const now = Date.now();
         const finalTime = Math.max(1, (now - (startTimeRef.current || now)) / 1000);
+        const finalScore = secureScoreRef.current;
 
-        if (score !== secureScoreRef.current) {
+        if (Math.abs(score - secureScoreRef.current) > 100) {
             toast.error("خطای امنیتی شناسایی شد.");
             setGameOver(true);
             setFallingWords([]);
+            setTimeout(() => navigate("/"), 1000);
             return;
         }
 
-        const finalScore = secureScoreRef.current;
         const finalWpm = Math.round((correctWords / (finalTime / 60)) || 0);
         const finalAccuracy = totalTypedRef.current > 0
             ? parseFloat(((correctWords / totalTypedRef.current) * 100).toFixed(1))
@@ -292,11 +293,11 @@ export default function Game({ onBack }) {
 
     function getWaveConfig() {
         switch (wave) {
-            case 1: return { spawn: 2000, speed: 20, multi: 1 };
-            case 2: return { spawn: 1600, speed: 16, multi: 2 };
-            case 3: return { spawn: 1200, speed: 13, multi: 2 };
-            case 4: return { spawn: 900, speed: 10, multi: 3 };
-            case 5: return { spawn: 700, speed: 8, multi: 3 };
+            case 1: return { spawn: 2400, speed: 25, multi: 1 };
+            case 2: return { spawn: 2000, speed: 20, multi: 2 };
+            case 3: return { spawn: 1600, speed: 16, multi: 2 };
+            case 4: return { spawn: 1000, speed: 10, multi: 3 };
+            case 5: return { spawn: 600, speed: 8, multi: 3 };
             default: return { spawn: 2000, speed: 20, multi: 1 };
         }
     }
@@ -750,9 +751,7 @@ export default function Game({ onBack }) {
                     <div className="modal">
                         <h2 className="modal-title">
                             <FaTrophy className="icon" />
-                            {savedResult?.isNewScoreRecord ? "🎉 رکورد جدید امتیاز! 🎉" :
-                                savedResult?.isNewWpmRecord ? "🚀 رکورد جدید سرعت! 🚀" :
-                                    "بازی تمام شد"}
+                            {savedResult?.isNewScoreRecord ? "🏆 رکورد قبلی رو شکوندی" : "بازی تمام شد"}
                         </h2>
                         <div className="modal-stats">
                             <p><FaStar className="icon" /> امتیاز نهایی: {score}</p>

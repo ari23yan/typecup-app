@@ -7,8 +7,7 @@ const crypto = require('crypto');
 
 exports.saveGameResult = async (req, res) => {
     try {
-
-        const { score, wpm, correctWords,duration,accuracy,waveReached,errors, signature } = req.body;
+        const { score, wpm, correctWords, duration, accuracy, waveReached, errors, signature } = req.body;
         const secretKey = process.env.GAME_SECRET_KEY;
 
         const expectedData = `${score}-${correctWords}-${wpm}`;
@@ -18,27 +17,31 @@ exports.saveGameResult = async (req, res) => {
             .digest('hex');
 
         if (signature !== expectedSignature) {
-            return res.status(401).json({ message: "دیتای ارسالی دستکاری شده است!" });
+            return res.json(
+                new ApiResponse(401, MESSAGES.ERROR.WRONG_SIGNITURE, null, false)
+            );
         }
 
         const userId = req.user.id;
         const currentSeason = getCurrentJalaaliSeason();
 
-        if (score > (correctWords * 10)) {
-            return res.status(400).json(new ApiResponse(400, "دیتای ارسالی نامعتبر است (Score Mismatch)", null, false));
-        }
+        // پیدا کردن بهترین نمره قبلی کاربر در این فصل
+        const bestScoreInSeason = await TypingScore.findOne({
+            user: userId,
+            'season.year': currentSeason.year,
+            'season.seasonNumber': currentSeason.seasonNumber
+        }).sort({ score: -1 }).limit(1);
 
-        if (wpm > 200) {
-            return res.status(400).json(new ApiResponse(400, "سرعت تایپ غیرطبیعی شناسایی شد.", null, false));
-        }
+        let isNewScoreRecord = false;
 
-        const minTimeRequired = (correctWords * 0.5);
-        if (duration < minTimeRequired && correctWords > 5) {
-            return res.status(400).json(new ApiResponse(400, "زمان بازی با تعداد کلمات همخوانی ندارد.", null, false));
+        if (!bestScoreInSeason) {
+            isNewScoreRecord = true;
         }
-
-        if (accuracy > 100 || accuracy < 0) {
-            return res.status(400).json(new ApiResponse(400, "دقت نامعتبر.", null, false));
+        else if (score > bestScoreInSeason.score) {
+            isNewScoreRecord = true;
+        }
+        else if (score === bestScoreInSeason.score && wpm > bestScoreInSeason.wpm) {
+            isNewScoreRecord = true;
         }
 
         const typingScore = new TypingScore({
@@ -58,14 +61,11 @@ exports.saveGameResult = async (req, res) => {
 
         await typingScore.save();
 
-        const isNewScoreRecord = true;
-
         return res.json(
             new ApiResponse(200, MESSAGES.SUCCESS.DEFAULT, { isNewScoreRecord }, true)
         );
-
     } catch (error) {
-        console.log("error errorerrorerror",error)
+        console.error('Error saving game result:', error);
         return res.status(500).json(new ApiResponse(500, MESSAGES.ERROR.DEFAULT, null, false));
     }
 };
@@ -73,15 +73,11 @@ exports.saveGameResult = async (req, res) => {
 exports.getWordsByWave = async (req, res) => {
     try {
         const { wave } = req.params;
-
-        let difficulty = 1;
-        if (wave <= 2) difficulty = 1;
-        else if (wave <= 4) difficulty = 2;
-        else difficulty = 3;
-
+        const waveNumber = parseInt(wave, 10);
         const words = await Word.aggregate([
-            { $match: { difficulty: { $lte: difficulty } } },
-            { $sample: { size: 50 } }
+            { $match: { difficulty: { $lte: waveNumber } } },
+            { $sample: { size: 50 } },
+            { $project: { text: 1, _id: 0 } }
         ]);
         return res.json(
             new ApiResponse(
@@ -181,7 +177,6 @@ exports.getLeaderboard = async (req, res) => {
             )
         );
     } catch (error) {
-        console.error("Leaderboard error:", error); // برای دیباگ
         return res.status(500).json(
             new ApiResponse(
                 500,

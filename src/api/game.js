@@ -23,7 +23,6 @@ export const saveGameResult = async (gameData) => {
     gameData.waveReached,
     gameData.errors,
   );
-
   const dataToSend = {
     ...gameData,
     signature: signature,

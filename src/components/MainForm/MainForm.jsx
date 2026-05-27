@@ -75,18 +75,49 @@ export default function MainForm() {
       {showAbout && (
         <div dir="rtl" className="modal-overlay" onClick={() => setShowAbout(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2 className="modal-title">درباره ما</h2>
-            <p className="modal-text">
-              TypeCup یک بازی تایپ رقابتی است که برای تمرین سرعت تایپ و سرگرمی ساخته شده.
-            </p>
-            <p className="modal-dev">
-              Developed With ❤ In Tehran By Ariyan Rahmani
-            </p>
-            <button className="close-btn" onClick={() => setShowAbout(false)}>
-              بستن
-            </button>
+            {/* بخش عنوان */}
+            <header>
+              <h2 className="modal-title">درباره ما</h2>
+            </header>
+            {/* بخش توضیحات اصلی */}
+            <main className="modal-body">
+              <p className="modal-text">
+                TypeCup یک بازی تایپ رقابتی و متن‌باز است که برای بهبود سرعت تایپ، دقت و تمرکز طراحی شده.
+                این بازی محیطی سرگرم‌کننده و چالش‌برانگیز فراهم می‌کند تا مهارت تایپ خود را به راحتی افزایش دهید.
+              </p>
+            </main>
+            <footer className="modal-footer">
+              <div className="modal-repo" dir="ltr">
+                <span className="title-repo">Repository:</span>
+                <a
+                  href="https://github.com/ari23yan/typecup-app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="repo-link"
+                  title="مشاهده سورس‌کد در گیت‌هاب"
+                >
+                  https://github.com/ari23yan/typecup-app
+                </a>
+              </div>
+
+              <hr className="profile-divider" />
+
+
+              <p className="modal-dev">
+                Developed With <span role="img" aria-label="love">❤</span> In Tehran By{' '}
+                <a
+                  href="http://ari23yan.github.io"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ textDecoration: 'none', color: '#ffd700' }}
+                >
+                  TwentyThree
+                </a>
+              </p>
+            </footer>
           </div>
         </div>
+
       )}
       {showAuth && (
         <AuthModal

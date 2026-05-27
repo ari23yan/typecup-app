@@ -177,8 +177,6 @@ exports.getTypingStats = async (req, res) => {
         );
 
     } catch (error) {
-        console.error("TypingStats Error:", error);
-
         return res.status(500).json(
             new ApiResponse(
                 500,
