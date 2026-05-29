@@ -189,10 +189,10 @@
   font-size: 28px;
   font-weight: 700;
   font-family: 'Orbitron', sans-serif;
-  text-decoration : none
+  text-decoration: none
 }
 
-.icon-wordCup{
+.icon-wordCup {
   direction: rtl;
 }
 
@@ -215,3 +215,35 @@
 .title-repo {
   color: #aaa;
 }
+
+.world-cup-title {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  unicode-bidi: plaintext;
+}
+
+.world-cup-title .hidden-l {
+  display: none;
+}
+
+.world-cup-title .word-part {
+  display: inline-block;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.world-cup-title:hover .word-part::after {
+  content: "l";
+  display: inline-block;
+  font-weight: bold;
+  background: #fff;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  background-size: 200% auto;
+  font-size: 28px;
+  font-weight: 700;
+  font-family: 'Orbitron', sans-serif;
+}
+

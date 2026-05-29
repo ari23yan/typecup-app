@@ -44,7 +44,9 @@ export default function MainForm() {
             </Link>
             <Link className="menu-btn world-cup-title disabled-btn">
               <p className="soon-tag">بزودی</p>
-              Word Cup 2026
+              <span className="word-part world-cup-title">Wor</span>
+              <span className="hidden-l world-cup-title">l</span>
+              <span className="world-cup-title">d Cup 2026</span>
               <FaFutbol className="icon" style={{ fontSize: '1.5rem', color: '#ffcc00' }} />
             </Link>
           </>
