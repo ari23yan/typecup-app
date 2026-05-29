@@ -1,58 +1,143 @@
-// models/Match.js
 const mongoose = require('mongoose');
 
 const matchSchema = new mongoose.Schema({
-    matchId: { type: String, required: true, unique: true },
-    stage: { type: String, enum: ['group', 'round_of_16', 'quarter_final', 'semi_final', 'final'], required: true },
-    round: String, // برای مرحله حذفی: 'round_of_16', 'quarter_finals', etc.
-    group: { type: String, default: null }, // فقط برای مرحله گروهی
-    
-    // اطلاعات مسابقه
-    day_of_week_fa: String,
-    date_fa: String,
-    time_fa: String,
-    
-    home_team: {
-        name: String,
-        flag_url: String,
-        odds_win: String,
-        isTBD: { type: Boolean, default: false } // برای مسابقاتی که تیمش هنوز مشخص نیست
+    eventId: {
+        type: String,
+        required: true,
+        unique: true,
+        index: true
     },
-    away_team: {
-        name: String,
-        flag_url: String,
-        odds_win: String,
-        isTBD: { type: Boolean, default: false }
+
+    leagueId: {
+        type: String,
+        default: '4429'
     },
-    draw_odds: String,
-    
-    // وضعیت مسابقه
-    matchStatus: { 
-        type: String, 
-        enum: ['NOT_STARTED', 'IN_PROGRESS', 'FINISHED', 'TBD'],
-        default: 'NOT_STARTED'
+
+    season: {
+        type: String,
+        default: '2026'
     },
-    matchStartTime: Date,
-    
-    // نتیجه
-    result: {
-        home_score: { type: Number, default: null },
-        away_score: { type: Number, default: null },
-        winner: { type: String, enum: ['home', 'away', 'draw', null], default: null }
+
+    homeTeam: {
+        type: String,
+        required: true
     },
-    
-    // برای مسابقات حذفی - تعیین تیم‌های صعود کننده
-    advancesTo: {
-        winnerAdvancesTo: String, // matchId بعدی که برنده بهش میره
-        loserAdvancesTo: String  // برای رده‌بندی
+
+    awayTeam: {
+        type: String,
+        required: true
     },
-    
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now }
+
+    homeTeamId: String,
+    awayTeamId: String,
+
+    homeTeamBadge: String,
+    awayTeamBadge: String,
+
+    // Scores
+    homeScore: {
+        type: Number,
+        default: null
+    },
+
+    awayScore: {
+        type: Number,
+        default: null
+    },
+
+    // Match status
+    status: {
+        type: String,
+        enum: [
+            'NS',      // Not Started
+            'LIVE',
+            'HT',      // Half Time
+            'FT',      // Full Time
+            'POSTPONED',
+            'CANCELLED'
+        ],
+        default: 'NS'
+    },
+
+    // Minute / progress
+    progress: {
+        type: String,
+        default: null
+    },
+
+    round: Number,
+
+    venue: String,
+
+    country: String,
+
+    kickoff: Date,
+
+    dateEvent: String,
+
+    timeEvent: String,
+
+    // Media
+    thumbnail: String,
+
+    poster: String,
+
+    video: String,
+
+    // Betting
+    odds: {
+
+        home: {
+            type: Number,
+            default: null
+        },
+
+        draw: {
+            type: Number,
+            default: null
+        },
+
+        away: {
+            type: Number,
+            default: null
+        }
+    },
+
+    // Control
+    isFinished: {
+        type: Boolean,
+        default: false
+    },
+
+    isLive: {
+        type: Boolean,
+        default: false
+    },
+
+    isPostponed: {
+        type: Boolean,
+        default: false
+    },
+
+    createdAt: {
+        type: Date,
+        default: Date.now
+    },
+
+    updatedAt: {
+        type: Date,
+        default: Date.now
+    }
+
 });
 
-// ایندکس برای جستجوی بهتر
-matchSchema.index({ stage: 1, matchStatus: 1 });
-matchSchema.index({ 'home_team.name': 1, 'away_team.name': 1 });
+
+matchSchema.pre('save', function(next) {
+
+    this.updatedAt = Date.now();
+
+    next();
+});
+
 
 module.exports = mongoose.model('Match', matchSchema);
