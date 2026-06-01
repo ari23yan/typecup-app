@@ -63,8 +63,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/game", gameRoutes);
 app.use("/api/worldcup", worldcupRoutes);
-
-// app.use("/api/admin", adminRoutes);
+ app.use("/api/admin", adminRoutes);
 //require('./jobs/matchSettlementJob');
 
 const PORT = process.env.PORT || 5000;
