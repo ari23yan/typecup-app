@@ -18,12 +18,6 @@ const betSchema = new mongoose.Schema({
         ref: 'Match',
         required: true
     },
-
-    eventId: {
-        type: String,
-        required: true
-    },
-
     // selected market -کاربر روی چی شرط بسته؟
     selection: {
         type: String,

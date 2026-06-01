@@ -6,6 +6,7 @@ import LeaderboardPage from './pages/LeaderboardPage';
 import DesktopOnly from './components/DesktopOnly/DesktopOnly';
 import Game from './components/Game/Game';
 import TypographyPage from './pages/TypographyPage';
+import AdminPage from './pages/AdminPage';
 import { isMobile } from "react-device-detect";
 import { Toaster } from "react-hot-toast";
 import "flag-icons/css/flag-icons.min.css";
@@ -41,6 +42,7 @@ function App() {
       />
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/admin" element={<AdminPage />} />
         <Route path="/demo" element={<DemoPage />} />
         <Route path="/game" element={
           <ProtectedRoute>

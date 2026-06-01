@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const matchSchema = new mongoose.Schema({
-    eventId: {
+    matchId: {
         type: String,
         required: true,
         unique: true,
@@ -19,15 +19,18 @@ const matchSchema = new mongoose.Schema({
     },
 
     homeTeam: {
-        type: String,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Team',  // ارتباط با مدل Team
         required: true
     },
 
     awayTeam: {
-        type: String,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Team',  // ارتباط با مدل Team
         required: true
     },
 
+    // نگهداری ID اصلی تیم از سرویس خارجی
     homeTeamId: String,
     awayTeamId: String,
 
@@ -84,25 +87,6 @@ const matchSchema = new mongoose.Schema({
 
     video: String,
 
-    // Betting
-    odds: {
-
-        home: {
-            type: Number,
-            default: null
-        },
-
-        draw: {
-            type: Number,
-            default: null
-        },
-
-        away: {
-            type: Number,
-            default: null
-        }
-    },
-
     // Control
     isFinished: {
         type: Boolean,
@@ -131,13 +115,9 @@ const matchSchema = new mongoose.Schema({
 
 });
 
-
 matchSchema.pre('save', function(next) {
-
     this.updatedAt = Date.now();
-
     next();
 });
-
 
 module.exports = mongoose.model('Match', matchSchema);
