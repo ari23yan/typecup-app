@@ -42,8 +42,8 @@ export default function MainForm() {
             <Link to="/game" className="menu-btn" style={{ textDecoration: 'none' }}>
               شروع بازی
             </Link>
-            <Link className="menu-btn world-cup-title disabled-btn">
-              <p className="soon-tag">بزودی</p>
+            <Link to="/worldcup" className="menu-btn world-cup-title">
+              {/* <p className="soon-tag">بزودی</p> */}
               <span className="word-part world-cup-title">Wor</span>
               <span className="hidden-l world-cup-title">l</span>
               <span className="world-cup-title">d Cup 2026</span>

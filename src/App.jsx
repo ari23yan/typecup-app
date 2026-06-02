@@ -7,6 +7,7 @@ import DesktopOnly from './components/DesktopOnly/DesktopOnly';
 import Game from './components/Game/Game';
 import TypographyPage from './pages/TypographyPage';
 import AdminPage from './pages/AdminPage';
+import WorldCupPage from './pages/WorldCupPage';
 import { isMobile } from "react-device-detect";
 import { Toaster } from "react-hot-toast";
 import "flag-icons/css/flag-icons.min.css";
@@ -55,6 +56,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/worldcup"
+          element={
+            <ProtectedRoute>
+              <WorldCupPage />
             </ProtectedRoute>
           }
         />
