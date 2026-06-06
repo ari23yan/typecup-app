@@ -24,9 +24,9 @@ function ProtectedRoute({ children }) {
 }
 
 function App() {
-  if (isMobile) {
-    return <DesktopOnly />;
-  }
+  // if (isMobile) {
+  //   return <DesktopOnly />;
+  // }
 
 
   return (
