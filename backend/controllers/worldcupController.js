@@ -69,7 +69,6 @@ exports.getMatches = async (req, res) => {
         );
     }
 };
-
 // شرط‌بندی (آپدیت شده برای پشتیبانی از مسابقات TBD)
 exports.placeBet = async (req, res) => {
     try {
@@ -133,38 +132,38 @@ exports.getMyBets = async (req, res) => {
         );
     }
 };
-
 // دریافت موجودی کیف پول
 exports.getWallet = async (req, res) => {
     try {
         const userId = req.user.id;
+
         const user = await User.findById(userId).select("wallet");
 
         if (!user) {
             return res.status(404).json(
-                new ApiResponse(404, MESSAGES.ERROR.USER_NOT_FOUND, null, false)
+                new ApiResponse(
+                    404,
+                    MESSAGES.ERROR.USER_NOT_FOUND,
+                    null,
+                    false
+                )
             );
         }
-
-        // محاسبه مجموع شرط‌های در انتظار
-        const pendingBets = bets.filter(bet =>
-            bet.userId === userId && bet.status === "PENDING"
-        );
-        const totalPendingAmount = pendingBets.reduce((sum, bet) => sum + bet.amount, 0);
 
         return res.json(
             new ApiResponse(
                 200,
                 MESSAGES.SUCCESS.DEFAULT,
                 {
-                    balance: user.wallet || 0,
-                    pendingBetsCount: pendingBets.length,
-                    totalPendingAmount
+                    balance: user.wallet.balance
                 },
                 true
             )
         );
+
     } catch (error) {
+        console.error(error);
+
         return res.status(500).json(
             new ApiResponse(
                 500,
