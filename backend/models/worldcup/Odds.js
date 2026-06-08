@@ -2,12 +2,9 @@ const mongoose = require('mongoose');
 
 const oddsSchema = new mongoose.Schema({
     matchId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Match',
+        type: String,
         required: true,
-        index: true
     },
-
     homeWin: {
         type: Number,
         required: true

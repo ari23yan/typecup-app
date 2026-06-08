@@ -21,9 +21,9 @@ exports.importMatches = async (req, res) => {
                     matchId: item.id
                 },
                 {
-                    matchId: item.id,
-                    homeTeamId: item.home_team_id,
-                    awayTeamId: item.away_team_id,
+                    matchId: item.id.trim(),
+                    homeTeamId: item.home_team_id.trim(),
+                    awayTeamId: item.away_team_id.trim(),
                     homeTeamNameEn: item.home_team_name_en,
                     homeTeamNameFa: item.home_team_name_fa,
                     awayTeamNameEn: item.away_team_name_en,
@@ -136,7 +136,7 @@ exports.importOdds = async (req, res) => {
                 updated++;
             } else {
                 await Odds.create({
-                    matchId: match._id,
+                    matchId: match.matchId,
                     homeWin: item.homeWin,
                     draw: item.draw,
                     awayWin: item.awayWin

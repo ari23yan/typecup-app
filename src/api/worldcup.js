@@ -1,10 +1,8 @@
 import apiClient from "./apiClient";
 
-export const getMatches = async (stage = 'group') => {
+export const getMatches = async () => {
     try {
-        const response = await apiClient.get(`/worldcup/matches`, {
-            params: { stage }
-        });
+        const response = await apiClient.get(`/worldcup/matches`);
         return response;
     } catch (error) {
         console.error('Error fetching matches:', error);
@@ -38,7 +36,7 @@ export const getUserWallet = async () => {
 
 export const placeBet = async (matchId, betType, amount) => {
     try {
-        const response = await apiClient.post(`/worldcup/bet`, 
+        const response = await apiClient.post(`/worldcup/bet`,
             { matchId, betType, amount },
             { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
         );
