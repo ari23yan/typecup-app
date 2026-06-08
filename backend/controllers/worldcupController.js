@@ -4,68 +4,128 @@ const User = require('../models/User');
 const ApiResponse = require('../utils/ApiResponse');
 const MESSAGES = require('../constants/responseMessages');
 
-// دریافت همه مسابقات با فیلتر مرحله
+
 exports.getMatches = async (req, res) => {
     try {
-        const { stage } = req.query; // 'group' یا 'knockout'
+        const now = new Date();
 
-        let query = {};
-        if (stage === 'group') {
-            query.stage = 'group';
-        } else if (stage === 'knockout') {
-            query.stage = { $in: ['round_of_16', 'quarter_final', 'semi_final', 'final'] };
-        }
+        const nextWeek = new Date();
+        nextWeek.setDate(now.getDate() + 7);
 
-        const matches = await Match.find(query).sort({ matchStartTime: 1 });
-
-        // گروه‌بندی برای مرحله گروهی
-        if (stage === 'group') {
-            const groupedMatches = matches.reduce((acc, match) => {
-                if (!acc[match.group]) {
-                    acc[match.group] = [];
+        const matches = await Match.aggregate([
+            {
+                $match: {
+                    localDate: {
+                        $gte: now,
+                        $lte: nextWeek
+                    }
                 }
-                acc[match.group].push(match);
-                return acc;
-            }, {});
+            },
 
-            return res.json(
-                new ApiResponse(200, MESSAGES.SUCCESS.DEFAULT, {
-                    tournament: "جام جهانی ۲۰۲۶",
-                    stage: "مرحله گروهی",
-                    groups: Object.entries(groupedMatches).map(([group, matches]) => ({
-                        group,
-                        matches
-                    }))
-                }, true)
-            );
-        }
+            // Home Team
+            {
+                $lookup: {
+                    from: "teams",
+                    localField: "homeTeamId",
+                    foreignField: "teamId",
+                    as: "homeTeam"
+                }
+            },
+            {
+                $unwind: {
+                    path: "$homeTeam",
+                    preserveNullAndEmptyArrays: true
+                }
+            },
 
-        // برای مرحله حذفی
-        const knockoutRounds = {
-            round_of_16: { name: "یک هشتم نهایی", matches: [] },
-            quarter_final: { name: "یک چهارم نهایی", matches: [] },
-            semi_final: { name: "نیمه نهایی", matches: [] },
-            final: { name: "فینال", matches: [] }
-        };
+            // Away Team
+            {
+                $lookup: {
+                    from: "teams",
+                    localField: "awayTeamId",
+                    foreignField: "teamId",
+                    as: "awayTeam"
+                }
+            },
+            {
+                $unwind: {
+                    path: "$awayTeam",
+                    preserveNullAndEmptyArrays: true
+                }
+            },
 
-        matches.forEach(match => {
-            if (knockoutRounds[match.stage]) {
-                knockoutRounds[match.stage].matches.push(match);
+            // Odds
+            {
+                $lookup: {
+                    from: "odds",
+                    localField: "matchId",
+                    foreignField: "matchId",
+                    as: "odds"
+                }
+            },
+            {
+                $unwind: {
+                    path: "$odds",
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+
+            {
+                $project: {
+                    _id: 0,
+                    matchId: 1,
+                    localDate: 1,
+                    persianDate: 1,
+                    status: 1,
+
+                    homeTeam: {
+                        teamId: "$homeTeam.teamId",
+                        name_fa: "$homeTeam.name_fa",
+                        name_en: "$homeTeam.name_en",
+                        flag: "$homeTeam.flag"
+                    },
+
+                    awayTeam: {
+                        teamId: "$awayTeam.teamId",
+                        name_fa: "$awayTeam.name_fa",
+                        name_en: "$awayTeam.name_en",
+                        flag: "$awayTeam.flag"
+                    },
+
+                    odds: {
+                        homeWin: "$odds.homeWin",
+                        draw: "$odds.draw",
+                        awayWin: "$odds.awayWin"
+                    }
+                }
+            },
+
+            {
+                $sort: {
+                    localDate: 1
+                }
             }
-        });
+        ]);
 
         return res.json(
-            new ApiResponse(200, MESSAGES.SUCCESS.DEFAULT, {
-                tournament: "جام جهانی ۲۰۲۶",
-                stage: "مرحله حذفی",
-                rounds: Object.values(knockoutRounds).filter(round => round.matches.length > 0)
-            }, true)
+            new ApiResponse(
+                200,
+                MESSAGES.SUCCESS.DEFAULT,
+                matches,
+                true
+            )
         );
 
     } catch (error) {
         console.error(error);
+
         return res.status(500).json(
-            new ApiResponse(500, MESSAGES.ERROR.DEFAULT, null, false)
+            new ApiResponse(
+                500,
+                MESSAGES.ERROR.DEFAULT,
+                null,
+                false
+            )
         );
     }
 };

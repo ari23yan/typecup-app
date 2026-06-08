@@ -47,7 +47,8 @@ const matchSchema = new mongoose.Schema({
         type: Number,
         default: null
     },
-
+    localDate: Date,
+    persianDate: String,
     // Match status
     status: {
         type: String,
@@ -115,7 +116,7 @@ const matchSchema = new mongoose.Schema({
 
 });
 
-matchSchema.pre('save', function(next) {
+matchSchema.pre('save', function (next) {
     this.updatedAt = Date.now();
     next();
 });
