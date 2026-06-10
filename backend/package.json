@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "cross-env NODE_ENV=production node server.js",
-    "dev": "cross-env NODE_ENV=development nodemon server.js"
+    "dev": "cross-env NODE_ENV=development nodemon server.js",
+    "sync-matches": "node scripts/syncMatches.js"
   },
   "engines": {
     "node": ">=18 <19"
