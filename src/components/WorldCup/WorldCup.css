@@ -718,3 +718,304 @@
         padding: 0 6px;
     }
 }
+
+/* Bet Modal Styles */
+.bet-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(8px);
+    direction: rtl;
+}
+
+.bet-modal {
+    background: linear-gradient(135deg, #041641 0%, #041641 100%);
+    border-radius: 24px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.bet-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bet-modal-header h3 {
+    color: #fff;
+    font-size: 1.25rem;
+    margin: 0;
+}
+
+.close-modal-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.close-modal-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: rotate(90deg);
+}
+
+.bet-modal-body {
+    padding: 24px;
+}
+
+.modal-match-info {
+    text-align: center;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    margin-bottom: 24px;
+}
+
+.modal-teams {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    font-size: 1rem;
+    color: #fff;
+    margin-bottom: 8px;
+}
+
+.modal-teams .vs {
+    color: #fbbf24;
+    font-weight: bold;
+    font-size: 0.875rem;
+}
+
+.modal-date {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.75rem;
+}
+
+.modal-selections h4,
+.modal-amount h4 {
+    color: #fff;
+    font-size: 0.875rem;
+    margin-bottom: 12px;
+}
+
+.selection-buttons {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.selection-btn {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px solid transparent;
+    border-radius: 12px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.selection-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    transform: translateY(-2px);
+}
+
+.selection-btn.active {
+    background: rgba(251, 191, 36, 0.2);
+    border-color: #fbbf24;
+}
+
+.selection-label {
+    color: #fff;
+    font-size: 0.75rem;
+}
+
+.selection-odd {
+    color: #fbbf24;
+    font-size: 1.125rem;
+    font-weight: bold;
+}
+
+.amount-input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 14px 1px;
+    color: #fff;
+    font-size: 1rem;
+    direction: ltr;
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+.amount-input:focus {
+    outline: none;
+    border-color: #fbbf24;
+}
+
+.quick-amounts {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+.quick-amount-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 6px 12px;
+    color: #fff;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.quick-amount-btn:hover {
+    background: rgba(251, 191, 36, 0.2);
+    border-color: #fbbf24;
+}
+
+.modal-calculation {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.calc-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.875rem;
+}
+
+.calc-row.total {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 8px;
+    padding-top: 12px;
+    font-weight: bold;
+    color: #fbbf24;
+    font-size: 1rem;
+}
+
+.modal-balance {
+    background: rgba(251, 191, 36, 0.1);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    color: #fff;
+    font-size: 0.875rem;
+}
+
+.modal-balance strong {
+    color: #fbbf24;
+}
+
+.modal-error {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid #ef4444;
+    border-radius: 8px;
+    padding: 10px;
+    color: #ef4444;
+    font-size: 0.75rem;
+    text-align: center;
+    margin-top: 12px;
+}
+
+.bet-modal-footer {
+    display: flex;
+    gap: 12px;
+    padding: 20px 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cancel-bet-btn,
+.submit-bet-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancel-bet-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.cancel-bet-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.submit-bet-btn {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    border: none;
+    color: #000;
+}
+
+.submit-bet-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(251, 191, 36, 0.3);
+}
+
+.submit-bet-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.spinning {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}

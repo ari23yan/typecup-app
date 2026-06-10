@@ -14,9 +14,8 @@ const betSchema = new mongoose.Schema({
 
     // match
     matchId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Match',
-        required: true
+        type: String,
+        required: true,
     },
     // selected market -کاربر روی چی شرط بسته؟
     selection: {

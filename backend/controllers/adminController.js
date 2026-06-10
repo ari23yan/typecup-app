@@ -33,7 +33,6 @@ exports.importMatches = async (req, res) => {
                     homeScorers: item.home_scorers === "null" ? null : item.home_scorers,
                     awayScorers: item.away_scorers === "null" ? null : item.away_scorers,
                     group: item.group,
-                    matchday: item.matchday,
                     localDate: item.local_date,
                     persianDate: item.persian_date,
                     stadiumId: item.stadium_id,
@@ -255,7 +254,7 @@ exports.getAllUsers = async (req, res) => {
 // دریافت همه شرط‌های ثبت شده
 exports.getAllBets = async (req, res) => {
     try {
-        
+
         const allBets = await Bet.find()
             .populate('userId', 'userName name email')
             .sort({ createdAt: -1 });
@@ -263,14 +262,15 @@ exports.getAllBets = async (req, res) => {
         // تبدیل ساختار داده به فرمت مناسب
         const betsWithUser = await Promise.all(allBets.map(async (bet) => {
             // دریافت اطلاعات مسابقه
-            const match = await Match.findById(bet.matchId);
-            
+            const match = await Match.findOne({
+                matchId: bet.matchId
+            });
             let homeTeamName = '-';
             let awayTeamName = '-';
             let selectedTeamName = '-';
             let selectedTeamNameFa = '-';
             let selectedTeamFlag = null;
-            
+
             if (match) {
                 // دریافت نام تیم میزبان از جدول Team
                 if (match.homeTeamId && match.homeTeamId !== '0') {
@@ -279,7 +279,7 @@ exports.getAllBets = async (req, res) => {
                         homeTeamName = homeTeam.name_fa || homeTeam.name_en || '-';
                     }
                 }
-                
+
                 // دریافت نام تیم مهمان از جدول Team
                 if (match.awayTeamId && match.awayTeamId !== '0') {
                     const awayTeam = await Team.findOne({ teamId: match.awayTeamId });
@@ -287,7 +287,7 @@ exports.getAllBets = async (req, res) => {
                         awayTeamName = awayTeam.name_fa || awayTeam.name_en || '-';
                     }
                 }
-                
+
                 // تعیین تیم انتخاب شده بر اساس انتخاب کاربر
                 const selection = bet.selection?.toUpperCase();
                 if (selection === 'HOME') {
@@ -309,7 +309,7 @@ exports.getAllBets = async (req, res) => {
                     selectedTeamNameFa = 'مساوی';
                 }
             }
-            
+
             // فرمت کردن تاریخ
             const formattedDate = bet.createdAt ? new Date(bet.createdAt).toLocaleDateString('fa-IR', {
                 year: 'numeric',
@@ -318,10 +318,10 @@ exports.getAllBets = async (req, res) => {
                 hour: '2-digit',
                 minute: '2-digit'
             }) : '-';
-            
+
             // تعیین وضعیت به فارسی
             let statusText = '';
-            switch(bet.status) {
+            switch (bet.status) {
                 case 'PENDING':
                     statusText = 'در انتظار';
                     break;
@@ -334,10 +334,10 @@ exports.getAllBets = async (req, res) => {
                 default:
                     statusText = bet.status;
             }
-            
+
             // تعیین نوع شرط به فارسی
             let selectionText = '';
-            switch(bet.selection?.toUpperCase()) {
+            switch (bet.selection?.toUpperCase()) {
                 case 'HOME':
                     selectionText = 'پیروزی میزبان';
                     break;
@@ -350,7 +350,7 @@ exports.getAllBets = async (req, res) => {
                 default:
                     selectionText = bet.selection;
             }
-            
+
             return {
                 _id: bet._id,
                 userId: bet.userId?._id,
@@ -386,7 +386,7 @@ exports.getAllBets = async (req, res) => {
                 } : null
             };
         }));
-        
+
         return res.json(
             new ApiResponse(
                 200,

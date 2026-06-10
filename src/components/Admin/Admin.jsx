@@ -32,8 +32,6 @@ export default function Admin() {
                 getStats(),
             ]);
 
-            console.log('Stats response:', statsRes);
-            console.log('Bets response:', betsRes);
 
             setUsers(usersRes?.data || []);
             setBets(betsRes?.data || []);
@@ -235,14 +233,13 @@ export default function Admin() {
                                     <td>
                                         <div className="user-info">
                                             <strong>{bet.user?.userName || "-"}</strong>
-                                            <small>{bet.user?.name || ""}</small>
                                         </div>
                                     </td>
                                     <td>
                                         {bet.matchInfo && (
                                             <div className="match-info">
                                                 <span className="teams">
-                                                    {bet.matchInfo.homeTeamNameFa || bet.matchInfo.homeTeamNameEn} vs {bet.matchInfo.awayTeamNameFa || bet.matchInfo.awayTeamNameEn}
+                                                    {bet.matchInfo.homeTeamName || bet.matchInfo.homeTeamName} vs {bet.matchInfo.awayTeamName || bet.matchInfo.awayTeamName}
                                                 </span>
                                                 {bet.matchInfo.finished && (
                                                     <span className="result">

@@ -34,15 +34,24 @@ export const getUserWallet = async () => {
     }
 };
 
-export const placeBet = async (matchId, betType, amount) => {
+export const placeBet = async (betData) => {
     try {
-        const response = await apiClient.post(`/worldcup/bet`,
-            { matchId, betType, amount },
-            { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+        const response = await apiClient.post(
+            '/worldcup/bet',
+            betData,
+            {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            }
         );
-        return response.data;
+
+        return response;
     } catch (error) {
-        console.error('Error placing bet:', error);
-        return { success: false, message: error.response?.data?.message || 'خطا در ثبت پیش‌بینی' };
+        console.error(error);
+        return {
+            success: false,
+            message: error.response?.data?.message
+        };
     }
 };

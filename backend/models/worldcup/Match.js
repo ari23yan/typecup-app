@@ -7,16 +7,16 @@ const matchSchema = new mongoose.Schema({
         unique: true,
         index: true
     },
-
     leagueId: {
         type: String,
         default: '4429'
     },
 
-    season: {
+    type: {
         type: String,
-        default: '2026'
+        default: null
     },
+
 
     homeTeam: {
         type: mongoose.Schema.Types.ObjectId,
@@ -62,32 +62,15 @@ const matchSchema = new mongoose.Schema({
         ],
         default: 'NS'
     },
-
-    // Minute / progress
-    progress: {
+    group: {
         type: String,
         default: null
     },
-
     round: Number,
 
-    venue: String,
-
-    country: String,
-
-    kickoff: Date,
-
-    dateEvent: String,
-
-    timeEvent: String,
-
-    // Media
-    thumbnail: String,
-
-    poster: String,
-
-    video: String,
-
+   
+    timeElapsed: String,
+  
     // Control
     isFinished: {
         type: Boolean,
