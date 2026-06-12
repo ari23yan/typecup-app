@@ -11,13 +11,15 @@ const matchSchema = new mongoose.Schema({
         type: String,
         default: '4429'
     },
+    stadiumId :{
+        type: String,
+    },
 
     type: {
         type: String,
         default: null
     },
-
-
+    betsSettled: { type: Boolean, default: false },
     homeTeam: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Team',  // ارتباط با مدل Team
@@ -53,14 +55,11 @@ const matchSchema = new mongoose.Schema({
     status: {
         type: String,
         enum: [
-            'NS',      // Not Started
-            'LIVE',
-            'HT',      // Half Time
-            'FT',      // Full Time
-            'POSTPONED',
-            'CANCELLED'
+            'notstarted',      // Not Started
+            'live',
+            'finished',
         ],
-        default: 'NS'
+        default: 'notstarted'
     },
     group: {
         type: String,
@@ -68,9 +67,10 @@ const matchSchema = new mongoose.Schema({
     },
     round: Number,
 
-   
+
     timeElapsed: String,
-  
+    kickoffUtc: Date,
+
     // Control
     isFinished: {
         type: Boolean,

@@ -27,9 +27,9 @@ apiClient.interceptors.response.use(
 
         if (error.response?.status === 401) {
             localStorage.removeItem("token");
-            
+
             toast.error("نشست شما منقضی شده است. در حال انتقال به صفحه اصلی...", {
-                autoClose: 2000 
+                autoClose: 2000
             });
 
             setTimeout(() => {
@@ -40,6 +40,19 @@ apiClient.interceptors.response.use(
                 success: false,
                 status: 401,
                 message: "نشست شما منقضی شده است."
+            });
+        }
+
+        // مدیریت خطای 403 - دسترسی غیرمجاز
+        if (error.response?.status === 403) {
+            toast.error("شما دسترسی به این بخش را ندارید. در حال انتقال به صفحه اصلی...", {
+                autoClose: 2000
+            });
+            window.location.href = "/";
+            return Promise.resolve({
+                success: false,
+                status: 403,
+                message: "دسترسی غیرمجاز"
             });
         }
 

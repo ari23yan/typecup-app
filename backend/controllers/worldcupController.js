@@ -10,22 +10,45 @@ const Odds = require('../models/worldcup/Odds');
 
 exports.getMatches = async (req, res) => {
     try {
-        const now = new Date();
+        const nowInIran = new Date().toLocaleString("en-US", { timeZone: "Asia/Tehran" });
+        const todayStart = new Date(nowInIran);
+        todayStart.setHours(0, 0, 0, 0);
 
-        const nextWeek = new Date();
-        nextWeek.setDate(now.getDate() + 7);
+        const todayEnd = new Date(nowInIran);
+        todayEnd.setHours(23, 59, 59, 999);
+
+        // تبدیل به UTC برای مقایسه با دیتابیس
+        const startUTC = new Date(todayStart.toLocaleString("en-US", { timeZone: "UTC" }));
+        const endUTC = new Date(todayEnd.toLocaleString("en-US", { timeZone: "UTC" }));
+
+
+        const nextWeek = new Date(startUTC);
+        nextWeek.setDate(startUTC.getDate() + 7);
 
         const matches = await Match.aggregate([
+            // {
+            //     $match: {
+            //         localDate: {
+            //             $gte: now,
+            //             $lte: nextWeek
+            //         }
+            //         // isFinished: false  
+            //     }
+            // },
+
             {
                 $match: {
-                    localDate: {
-                        $gte: now,
-                        $lte: nextWeek
+                    isFinished: false,
+                    $expr: {
+                        $and: [
+                            { $gte: [{ $toDate: "$localDate" }, startUTC] },
+                            { $lte: [{ $toDate: "$localDate" }, nextWeek] }
+
+
+                        ]
                     }
-                    // isFinished: false  
                 }
             },
-
 
             // Home Team
             {
@@ -84,7 +107,8 @@ exports.getMatches = async (req, res) => {
                     status: 1,
                     homeScore: 1,
                     awayScore: 1,
-
+                    stadiumId: 1,
+                    kickoffUtc: 1,
                     homeTeam: {
                         teamId: "$homeTeam.teamId",
                         name_fa: "$homeTeam.name_fa",
@@ -291,17 +315,123 @@ exports.getMyBets = async (req, res) => {
     try {
         const userId = req.user.id;
 
-        const userBets = bets.filter(bet => bet.userId === userId);
+        // دریافت شرط‌های کاربر با اطلاعات کامل مسابقه
+        const bets = await Bet.aggregate([
+            {
+                $match: {
+                    userId: new mongoose.Types.ObjectId(userId)
+                }
+            },
+            // مرتب‌سازی بر اساس تاریخ ثبت (جدیدترین اول)
+            {
+                $sort: {
+                    createdAt: -1
+                }
+            },
+            // Join با جدول مسابقات برای دریافت اطلاعات کامل
+            {
+                $lookup: {
+                    from: "matches",
+                    localField: "matchId",
+                    foreignField: "matchId",
+                    as: "matchDetails"
+                }
+            },
+            {
+                $unwind: {
+                    path: "$matchDetails",
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            // Join با جدول تیم‌ها برای اطلاعات تیم میزبان
+            {
+                $lookup: {
+                    from: "teams",
+                    localField: "matchDetails.homeTeamId",
+                    foreignField: "teamId",
+                    as: "homeTeam"
+                }
+            },
+            {
+                $unwind: {
+                    path: "$homeTeam",
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            // Join با جدول تیم‌ها برای اطلاعات تیم مهمان
+            {
+                $lookup: {
+                    from: "teams",
+                    localField: "matchDetails.awayTeamId",
+                    foreignField: "teamId",
+                    as: "awayTeam"
+                }
+            },
+            {
+                $unwind: {
+                    path: "$awayTeam",
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    betId: "$_id",
+                    matchId: 1,
+                    selection: 1,
+                    odd: 1,
+                    stake: 1,
+                    possibleWin: 1,
+                    status: 1,
+                    settledAt: 1,
+                    createdAt: 1,
+                    matchDetails: {
+                        localDate: "$matchDetails.localDate",
+                        persianDate: "$matchDetails.persianDate",
+                        status: "$matchDetails.status",
+                        homeScore: "$matchDetails.homeScore",
+                        awayScore: "$matchDetails.awayScore"
+                    },
+                    homeTeam: {
+                        teamId: "$homeTeam.teamId",
+                        name_fa: "$homeTeam.name_fa",
+                        name_en: "$homeTeam.name_en",
+                        flag: "$homeTeam.flag"
+                    },
+                    awayTeam: {
+                        teamId: "$awayTeam.teamId",
+                        name_fa: "$awayTeam.name_fa",
+                        name_en: "$awayTeam.name_en",
+                        flag: "$awayTeam.flag"
+                    }
+                }
+            }
+        ]);
+
+        // محاسبه آمار کلی
+        const stats = {
+            totalBets: bets.length,
+            pendingBets: bets.filter(bet => bet.status === 'PENDING').length,
+            wonBets: bets.filter(bet => bet.status === 'WON').length,
+            lostBets: bets.filter(bet => bet.status === 'LOST').length,
+            totalStake: bets.reduce((sum, bet) => sum + bet.stake, 0),
+            totalPossibleWin: bets.reduce((sum, bet) => sum + bet.possibleWin, 0)
+        };
 
         return res.json(
             new ApiResponse(
                 200,
                 MESSAGES.SUCCESS.DEFAULT,
-                userBets,
+                {
+                    bets,
+                    stats
+                },
                 true
             )
         );
+
     } catch (error) {
+        console.error('Error in getMyBets:', error);
         return res.status(500).json(
             new ApiResponse(
                 500,
@@ -351,6 +481,186 @@ exports.getWallet = async (req, res) => {
                 null,
                 false
             )
+        );
+    }
+};
+
+exports.getLiveMatches = async (req, res) => {
+    try {
+        const now = new Date();
+
+        const todayStartUTC = new Date(Date.UTC(
+            now.getUTCFullYear(),
+            now.getUTCMonth(),
+            now.getUTCDate(),
+            0, 0, 0, 0
+        ));
+
+        const nextWeek = new Date(todayStartUTC);
+        nextWeek.setUTCDate(todayStartUTC.getUTCDate() + 7);
+
+        const matches = await Match.aggregate([
+            {
+                $match: {
+                    isLive: true,
+                    kickoffUtc: {
+                        $gte: todayStartUTC,
+                        $lte: nextWeek
+                    }
+                }
+            },
+
+            {
+                $addFields: {
+                    matchStartTime: "$kickoffUtc"
+                }
+            },
+
+            {
+                $addFields: {
+                    elapsedSeconds: {
+                        $max: [
+                            0,
+                            {
+                                $floor: {
+                                    $divide: [
+                                        { $subtract: [now, "$matchStartTime"] },
+                                        1000
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+
+            {
+                $addFields: {
+                    minutes: { $floor: { $divide: ["$elapsedSeconds", 60] } },
+                    seconds: { $mod: ["$elapsedSeconds", 60] }
+                }
+            },
+
+            {
+                $addFields: {
+                    matchTime: {
+                        $concat: [
+                            {
+                                $cond: {
+                                    if: { $lt: ["$minutes", 10] },
+                                    then: {
+                                        $concat: ["0", { $toString: "$minutes" }]
+                                    },
+                                    else: { $toString: "$minutes" }
+                                }
+                            },
+                            ":",
+                            {
+                                $cond: {
+                                    if: { $lt: ["$seconds", 10] },
+                                    then: {
+                                        $concat: ["0", { $toString: "$seconds" }]
+                                    },
+                                    else: { $toString: "$seconds" }
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+
+            {
+                $lookup: {
+                    from: "teams",
+                    localField: "homeTeamId",
+                    foreignField: "teamId",
+                    as: "homeTeam"
+                }
+            },
+            {
+                $unwind: {
+                    path: "$homeTeam",
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+
+            {
+                $lookup: {
+                    from: "teams",
+                    localField: "awayTeamId",
+                    foreignField: "teamId",
+                    as: "awayTeam"
+                }
+            },
+            {
+                $unwind: {
+                    path: "$awayTeam",
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+
+            {
+                $lookup: {
+                    from: "odds",
+                    localField: "matchId",
+                    foreignField: "matchId",
+                    as: "odds"
+                }
+            },
+            {
+                $unwind: {
+                    path: "$odds",
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+
+            {
+                $project: {
+                    _id: 0,
+                    matchId: 1,
+                    kickoffUtc: 1,
+                    persianDate: 1,
+                    status: 1,
+                    homeScore: 1,
+                    awayScore: 1,
+                    matchTime: 1,
+
+                    homeTeam: {
+                        teamId: "$homeTeam.teamId",
+                        name_fa: "$homeTeam.name_fa",
+                        name_en: "$homeTeam.name_en",
+                        flag: "$homeTeam.flag"
+                    },
+
+                    awayTeam: {
+                        teamId: "$awayTeam.teamId",
+                        name_fa: "$awayTeam.name_fa",
+                        name_en: "$awayTeam.name_en",
+                        flag: "$awayTeam.flag"
+                    },
+
+                    odds: {
+                        homeWin: "$odds.homeWin",
+                        draw: "$odds.draw",
+                        awayWin: "$odds.awayWin"
+                    }
+                }
+            },
+
+            {
+                $sort: { kickoffUtc: 1 }
+            }
+        ]);
+
+        return res.json(
+            new ApiResponse(200, MESSAGES.SUCCESS.DEFAULT, matches, true)
+        );
+
+    } catch (error) {
+        console.error(error);
+
+        return res.status(500).json(
+            new ApiResponse(500, MESSAGES.ERROR.DEFAULT, null, false)
         );
     }
 };
