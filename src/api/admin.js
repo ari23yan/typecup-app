@@ -15,3 +15,10 @@ export const getAllBets = async () => {
 export const getStats = async () => {
     return apiClient("/admin/stats");
 };
+
+// تابع کمکی برای بررسی خطای 403
+export const isForbiddenError = (error) => {
+    return error?.response?.status === 403 ||
+        error?.statusCode === 403 ||
+        error?.message?.includes("Admin access restricted");
+};

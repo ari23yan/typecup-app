@@ -1,16 +1,17 @@
-// WorldCup.jsx - نسخه کامل با مدال ثبت شرط
 
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { FaArrowLeft, FaSpinner, FaTimes } from "react-icons/fa";
+import { FaArrowLeft, FaSpinner, FaTimes, FaTrophy, FaClock, FaTimesCircle, FaCheckCircle, FaFutbol } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import "./WorldCup.css";
 import worldCupLogo from "../../assets/worldcup.png";
 import walletIcon from "../../assets/whallet.png";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
+import jalaali from 'jalaali-js';
+import { DateTime } from "luxon";
 
-import { getUserWallet, getMatches, placeBet } from "../../api/worldcup";
+import { getUserWallet, getUserBets, getMatches, placeBet, getLiveMatches } from "../../api/worldcup";
 
 export default function WorldCup() {
     const navigate = useNavigate();
@@ -29,6 +30,77 @@ export default function WorldCup() {
     const [betAmount, setBetAmount] = useState("");
     const [placingBet, setPlacingBet] = useState(false);
 
+
+    // State for my bets
+    const [myBets, setMyBets] = useState([]);
+    const [loadingBets, setLoadingBets] = useState(false);
+
+    // اضافه کنید به state های قبلی
+    const [liveMatches, setLiveMatches] = useState([]);
+    const [loadingLive, setLoadingLive] = useState(false);
+
+
+    // تابع دریافت بازی‌های زنده
+    const fetchLiveMatches = async () => {
+        setLoadingLive(true);
+        try {
+            const result = await getLiveMatches();
+            if (result.success) {
+                setLiveMatches(result.data);
+            }
+        } catch (error) {
+            console.error("Error fetching live matches:", error);
+        } finally {
+            setLoadingLive(false);
+        }
+    };
+
+    // دریافت پیش‌بینی‌های من
+    const fetchMyBets = async () => {
+        setLoadingBets(true);
+        try {
+            const result = await getUserBets();
+            if (result.success) {
+                setMyBets(result.data.bets);
+            } else {
+                console.error("Error fetching bets:", result.message);
+            }
+        } catch (error) {
+            console.error("Error fetching my bets:", error);
+        } finally {
+            setLoadingBets(false);
+        }
+    };
+
+    // تابع برای نمایش وضعیت شرط به فارسی
+    const getStatusText = (status) => {
+        switch (status) {
+            case 'PENDING':
+                return { text: 'در انتظار', className: 'status-pending', icon: <FaClock /> };
+            case 'WON':
+                return { text: 'برنده', className: 'status-won', icon: <FaCheckCircle /> };
+            case 'LOST':
+                return { text: 'باخته', className: 'status-lost', icon: <FaTimesCircle /> };
+            default:
+                return { text: 'نامشخص', className: 'status-unknown', icon: null };
+        }
+    };
+
+    function toPersianDate(utcDate) {
+        const iranTime = DateTime
+            .fromISO(utcDate, { zone: "utc" })
+            .setZone("Asia/Tehran");
+
+        const { jy, jm, jd } = jalaali.toJalaali(
+            iranTime.year,
+            iranTime.month,
+            iranTime.day
+        );
+
+        return `${jy}/${String(jm).padStart(2, "0")}/${String(jd).padStart(2, "0")} ${iranTime.toFormat("HH:mm")}`;
+    }
+
+    // Usage example:
     const WorldCupSkeleton = () => {
         return (
             <div className="worldcup-container">
@@ -100,11 +172,13 @@ export default function WorldCup() {
         return () => clearTimeout(timer);
     }, []);
 
-    // دریافت مقدار کیف پول
     useEffect(() => {
-
-
+        fetchMyBets();
         fetchWallet();
+        fetchLiveMatches();
+        const interval = setInterval(fetchLiveMatches, 30000);
+        return () => clearInterval(interval);
+
     }, []);
 
     // دریافت لیست بازی ها
@@ -198,12 +272,11 @@ export default function WorldCup() {
                 selection: selectedSelection.type,
                 amount: amount
             });
-            debugger
             if (result.success) {
                 toast.success("شرط شما با موفقیت ثبت شد!");
 
                 fetchWallet();
-
+                fetchMyBets();
                 handleCloseBetModal();
             } else {
                 toast.error(result.message || "خطا در ثبت شرط");
@@ -230,6 +303,14 @@ export default function WorldCup() {
             </div>
         );
     }
+    // From URL like "https://flagcdn.com/w80/ca.png" or "/flags/ca.png"
+    const getCountryCode = (flagUrl) => {
+        // Extract filename without extension
+        const fileName = flagUrl.split('/').pop(); // gets "ca.png"
+        const countryCode = fileName.split('.')[0]; // gets "ca"
+        return countryCode.toLowerCase();
+    };
+
 
     return (
         <div className="worldcup-page">
@@ -275,30 +356,29 @@ export default function WorldCup() {
                                     <div
                                         key={match.matchId}
                                         className="match-item"
-                                        onClick={() => navigate(`/worldcup/match/${match.matchId}`)}
+                                        onClick={(e) => handleOpenBetModal(match, e)}
                                     >
                                         <div className="match-date">
-                                            <span className="persian-date">{match.persianDate?.replace(/-/g, "/")}</span>
+                                            {toPersianDate(match.kickoffUtc)}
                                         </div>
 
                                         <div className="match-teams">
                                             <div className="team home-team">
-                                                <img
+                                                {/* <img
                                                     src={match.homeTeam.flag}
                                                     alt={match.homeTeam.name_fa}
                                                     className="team-flag"
-                                                />
+                                                /> */}
+                                                <span className={`fi fi-${getCountryCode(match.homeTeam.flag)}`}></span>
+
+
                                                 <span className="team-name">{match.homeTeam.name_fa}</span>
                                             </div>
 
                                             <div className="match-vs">VS</div>
 
                                             <div className="team away-team">
-                                                <img
-                                                    src={match.awayTeam.flag}
-                                                    alt={match.awayTeam.name_fa}
-                                                    className="team-flag"
-                                                />
+                                                <span className={`fi fi-${getCountryCode(match.awayTeam.flag)}`}></span>
                                                 <span className="team-name">{match.awayTeam.name_fa}</span>
                                             </div>
                                         </div>
@@ -331,28 +411,134 @@ export default function WorldCup() {
                             </div>
                         </div>
                     </div>
-
                     <div className="side-cards-container">
-                        <div
-                            className="game-card main-card"
-                            onClick={() => navigate("/worldcup/my-predictions")}
-                        >
+                        {/* My Predictions Card with direct list of bets */}
+                        <div className="game-card main-card my-predictions-card">
                             <div className="card-header">
                                 <h3>پیش‌بینی‌های من</h3>
                                 <div className="header-line"></div>
                             </div>
-                            <div className="card-content centered"></div>
-                        </div>
+                            <div className="card-content my-predictions-content">
+                                {loadingBets ? (
+                                    <div className="bets-loading">
+                                        <FaSpinner className="spinning" />
+                                        <span>در حال بارگذاری...</span>
+                                    </div>
+                                ) : myBets.length === 0 ? (
+                                    <div className="no-bets">
+                                        <p>هنوز پیش‌بینی ثبت نکرده‌اید</p>
+                                    </div>
+                                ) : (
+                                    <div className="my-bets-list">
+                                        {myBets.slice(0, 5).map((bet) => {
+                                            const status = getStatusText(bet.status);
+                                            return (
+                                                <div key={bet.betId} className="my-bet-item">
+                                                    <div className="bet-match-info">
+                                                        <div className="bet-teams">
+                                                            <span className="home-team-name">{bet.homeTeam?.name_fa}</span>
+                                                            <span className="vs-icon">VS</span>
+                                                            <span className="away-team-name">{bet.awayTeam?.name_fa}</span>
+                                                        </div>
+                                                        <div className="bet-selection">
+                                                            انتخاب: <strong>{getSelectedTeamName(bet)}</strong>
+                                                        </div>
+                                                    </div>
 
-                        <div
-                            className="game-card main-card"
-                            onClick={() => navigate("/worldcup/leaderboard")}
-                        >
+                                                    <div className="bet-details-row">
+                                                        <div className="bet-detail">
+                                                            <span className="detail-label">تاریخ ثبت:</span>
+                                                            <span className="detail-value">
+                                                                {new Date(bet.createdAt).toLocaleDateString("fa-IR")}
+                                                            </span>
+                                                        </div>
+                                                        <div className="bet-detail">
+                                                            <span className="detail-label">مبلغ شرط:</span>
+                                                            <span className="detail-value">
+                                                                {bet.stake?.toLocaleString("fa-IR")} تومان
+                                                            </span>
+                                                        </div>
+                                                        <div className="bet-detail">
+                                                            <span className="detail-label">برد احتمالی:</span>
+                                                            <span className="detail-value">
+                                                                {bet.possibleWin?.toLocaleString("fa-IR")} تومان
+                                                            </span>
+                                                        </div>
+                                                        <div className={`bet-status-badge ${status.className}`}>
+                                                            {status.icon}
+                                                            <span>{status.text}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                        {myBets.length > 5 && (
+                                            <div className="more-bets-hint">
+                                                {myBets.length - 5} پیش‌بینی دیگر...
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="game-card main-card live-matches-card">
                             <div className="card-header">
-                                <h3>لیدربورد</h3>
+                                <h3>بازی‌های زنده</h3>
                                 <div className="header-line"></div>
                             </div>
-                            <div className="card-content centered"></div>
+                            <div className="card-content live-matches-content">
+                                {loadingLive ? (
+                                    <div className="live-loading">
+                                        <FaSpinner className="spinning" />
+                                        <span>در حال بارگذاری...</span>
+                                    </div>
+                                ) : liveMatches.length === 0 ? (
+                                    <div className="no-live-matches">
+                                        <FaFutbol className="no-live-icon" />
+                                        <p>هیچ بازی زنده‌ای وجود ندارد</p>
+                                    </div>
+                                ) : (
+                                    <div className="live-matches-list">
+                                        {liveMatches.map((match) => (
+                                            <div
+                                                key={match.matchId}
+                                                className="live-match-item"
+                                            >
+                                                <div className="live-match-header">
+                                                    <div className="live-indicator-small">
+                                                        <div className="live-dot-small"></div>
+                                                        <span>زنده</span>
+                                                    </div>
+                                                    <div className="match-time-small">
+                                                        <span className="timer" >{match.matchTime}</span>
+                                                        <FaClock className="icon" />
+                                                        {/* <span>{match.persianDate?.replace(/-/g, "/")}</span> */}
+                                                    </div>
+                                                </div>
+
+                                                <div className="live-score">
+                                                    <div className="live-team">
+                                                        <span className={`fi fi-${getCountryCode(match.homeTeam.flag)}`}></span>
+                                                        <span className="live-team-name">{match.homeTeam.name_fa}</span>
+                                                        <span className="live-team-score">
+                                                            {match.homeScore !== undefined ? match.homeScore : "0"}
+                                                        </span>
+                                                    </div>
+                                                    <div className="live-vs">VS</div>
+                                                    <div className="live-team">
+                                                        <span className="live-team-score">
+                                                            {match.awayScore !== undefined ? match.awayScore : "0"}
+                                                        </span>
+                                                        <span className="live-team-name">{match.awayTeam.name_fa}</span>
+                                                        <span className={`fi fi-${getCountryCode(match.awayTeam.flag)}`}></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                            </div>
                         </div>
                     </div>
                 </div>

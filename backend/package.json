@@ -25,6 +25,7 @@
     "express-rate-limit": "^7.3.0",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
+    "luxon": "^3.7.2",
     "moment-jalaali": "^0.10.4",
     "mongoose": "^6.13.8",
     "node-cron": "^4.2.1",
