@@ -55,7 +55,7 @@ cron.schedule('* * * * *', async () => {
                 console.log('🔵 Using MOCK DATA for testing');
                 games = mockMatchData.games;
             } else {
-                const response = await axios.get('https://worldcup26.ir/get/games', {
+                const response = await axios.get('http://185.173.104.222:3000/games', {
                     timeout: 30000 // 30 ثانیه
                 });
                 games = response.data.games || [];

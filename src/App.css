@@ -12,16 +12,19 @@ body {
 
 
 #root {
-  height: 100vh;
-  /* width: 100vw; */
-
+  min-height: 100vh;
+  /* استفاده از min-height به جای height ثابت برای ریسپانسیو */
+  width: 100%;
 
   background-size: 400% 400%;
   animation: gradientFlow 18s ease infinite;
 
-  /* display: flex; */
+  /* فعال کردن flex */
   justify-content: center;
   align-items: center;
+
+  /* برای موبایل */
+  box-sizing: border-box;
 }
 
 @keyframes gradientFlow {
@@ -41,7 +44,7 @@ body {
 .main-container {
   width: 100%;
   height: 100%;
-  display: flex;
+  /* display: flex; */
   justify-content: center;
   align-items: center;
   background: transparent;

@@ -311,6 +311,15 @@ export default function WorldCup() {
         return countryCode.toLowerCase();
     };
 
+    const getSelectedTeamName = (bet) => {
+        if (bet.selection === 'HOME') {
+            return bet.homeTeam?.name_fa || 'میزبان';
+        } else if (bet.selection === 'AWAY') {
+            return bet.awayTeam?.name_fa || 'مهمان';
+        } else {
+            return 'مساوی';
+        }
+    };
 
     return (
         <div className="worldcup-page">

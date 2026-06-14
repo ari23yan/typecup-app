@@ -39,6 +39,7 @@ exports.getMatches = async (req, res) => {
             {
                 $match: {
                     isFinished: false,
+                    isLive: false,
                     $expr: {
                         $and: [
                             { $gte: [{ $toDate: "$localDate" }, startUTC] },

@@ -457,3 +457,227 @@ exports.getStats = async (req, res) => {
         );
     }
 };
+
+// آپدیت چند ضریب به صورت همزمان
+// آپدیت ضریب یک بازی به صورت تکی
+exports.updateOdd = async (req, res) => {
+    try {
+        const { matchId, homeWin, draw, awayWin } = req.body;
+
+        // اعتبارسنجی ورودی‌ها
+        if (!matchId) {
+            return res.status(400).json(
+                new ApiResponse(400, "شناسه مسابقه الزامی است", null, false)
+            );
+        }
+
+        if (!homeWin || !draw || !awayWin) {
+            return res.status(400).json(
+                new ApiResponse(400, "ضرایب خانه، مساوی و مهمان الزامی هستند", null, false)
+            );
+        }
+
+        // بررسی وجود مسابقه
+        const match = await Match.findOne({ matchId: matchId });
+        if (!match) {
+            return res.status(404).json(
+                new ApiResponse(404, "مسابقه مورد نظر یافت نشد", null, false)
+            );
+        }
+
+        // جستجو و آپدیت ضریب
+        const updatedOdd = await Odds.findOneAndUpdate(
+            { matchId: match._id }, // فیلتر برای پیدا کردن رکورد
+            {
+                matchId: match._id,
+                homeWin: parseFloat(homeWin),
+                draw: parseFloat(draw),
+                awayWin: parseFloat(awayWin),
+                updatedAt: new Date()
+            },
+            {
+                upsert: true, // اگر وجود نداشت ایجاد کن
+                new: true     // رکورد جدید را برگردان
+            }
+        );
+
+        return res.json(
+            new ApiResponse(
+                200,
+                "ضریب مسابقه با موفقیت آپدیت شد",
+                {
+                    matchId: match.matchId,
+                    homeTeam: match.homeTeamNameFa,
+                    awayTeam: match.awayTeamNameFa,
+                    odds: {
+                        homeWin: updatedOdd.homeWin,
+                        draw: updatedOdd.draw,
+                        awayWin: updatedOdd.awayWin
+                    },
+                    updatedAt: updatedOdd.updatedAt
+                },
+                true
+            )
+        );
+
+    } catch (error) {
+        console.error('updateSingleOdd error:', error);
+        return res.status(500).json(
+            new ApiResponse(
+                500,
+                MESSAGES.ERROR.DEFAULT,
+                null,
+                false
+            )
+        );
+    }
+};
+
+exports.getMatchesWithOdds = async (req, res) => {
+    try {
+        const nowInIran = new Date().toLocaleString("en-US", { timeZone: "Asia/Tehran" });
+        const todayStart = new Date(nowInIran);
+        todayStart.setHours(0, 0, 0, 0);
+
+        const todayEnd = new Date(nowInIran);
+        todayEnd.setHours(23, 59, 59, 999);
+
+        // تبدیل به UTC برای مقایسه با دیتابیس
+        const startUTC = new Date(todayStart.toLocaleString("en-US", { timeZone: "UTC" }));
+        const endUTC = new Date(todayEnd.toLocaleString("en-US", { timeZone: "UTC" }));
+
+
+
+        const matches = await Match.aggregate([
+            // {
+            //     $match: {
+            //         localDate: {
+            //             $gte: now,
+            //             $lte: nextWeek
+            //         }
+            //         // isFinished: false  
+            //     }
+            // },
+
+            {
+                $match: {
+                    isFinished: false,
+                    isLive: false,
+                    $expr: {
+                        $and: [
+                            { $gte: [{ $toDate: "$localDate" }, startUTC] }
+                        ]
+                    }
+                }
+            },
+
+            // Home Team
+            {
+                $lookup: {
+                    from: "teams",
+                    localField: "homeTeamId",
+                    foreignField: "teamId",
+                    as: "homeTeam"
+                }
+            },
+            {
+                $unwind: {
+                    path: "$homeTeam",
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+
+            // Away Team
+            {
+                $lookup: {
+                    from: "teams",
+                    localField: "awayTeamId",
+                    foreignField: "teamId",
+                    as: "awayTeam"
+                }
+            },
+            {
+                $unwind: {
+                    path: "$awayTeam",
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+
+            // Odds
+            {
+                $lookup: {
+                    from: "odds",
+                    localField: "matchId",
+                    foreignField: "matchId",
+                    as: "odds"
+                }
+            },
+            {
+                $unwind: {
+                    path: "$odds",
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+
+            {
+                $project: {
+                    _id: 0,
+                    matchId: 1,
+                    localDate: 1,
+                    persianDate: 1,
+                    status: 1,
+                    homeScore: 1,
+                    awayScore: 1,
+                    stadiumId: 1,
+                    kickoffUtc: 1,
+                    homeTeam: {
+                        teamId: "$homeTeam.teamId",
+                        name_fa: "$homeTeam.name_fa",
+                        name_en: "$homeTeam.name_en",
+                        flag: "$homeTeam.flag"
+                    },
+
+                    awayTeam: {
+                        teamId: "$awayTeam.teamId",
+                        name_fa: "$awayTeam.name_fa",
+                        name_en: "$awayTeam.name_en",
+                        flag: "$awayTeam.flag"
+                    },
+
+                    odds: {
+                        homeWin: "$odds.homeWin",
+                        draw: "$odds.draw",
+                        awayWin: "$odds.awayWin"
+                    }
+                }
+            },
+
+            {
+                $sort: {
+                    localDate: 1
+                }
+            }
+        ]);
+
+        return res.json(
+            new ApiResponse(
+                200,
+                MESSAGES.SUCCESS.DEFAULT,
+                matches,
+                true
+            )
+        );
+
+    } catch (error) {
+        console.error(error);
+
+        return res.status(500).json(
+            new ApiResponse(
+                500,
+                MESSAGES.ERROR.DEFAULT,
+                null,
+                false
+            )
+        );
+    }
+};

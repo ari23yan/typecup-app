@@ -56,7 +56,6 @@ export default function MainForm() {
 
 
         <Link to="/demo" className="menu-btn" style={{ textDecoration: 'none' }}>
-          {/* <span class="fi fi-cz"></span> */}
           دمو
         </Link>
 

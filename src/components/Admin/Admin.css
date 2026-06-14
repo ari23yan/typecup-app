@@ -233,3 +233,271 @@ tbody tr:hover {
     padding: 24px;
     box-sizing: border-box;
 }
+
+/* Odds Management Section Styles */
+.odds-management-section {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.section-header h3 {
+    margin: 0 0 20px 0;
+    color: #1a1a2e;
+    font-size: 1.4rem;
+    font-weight: 600;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+/* Wrapper برای کنترل عرض */
+.odds-table-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    position: relative;
+}
+
+/* Container برای محدود کردن عرض جدول */
+.odds-table-container {
+    max-width: 300px;
+    overflow-x: auto;
+    margin: 0 auto;
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+}
+
+/* اسکرول‌بار سفارشی برای ظاهر بهتر */
+.odds-table-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.odds-table-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.odds-table-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.odds-table-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.odds-table {
+    width: 100%;
+    min-width: 700px;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.odds-table th {
+    background: #f5f5f5;
+    padding: 10px 6px;
+    text-align: center;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 2px solid #ddd;
+    white-space: nowrap;
+}
+
+.odds-table td {
+    padding: 10px 6px;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.odds-table tbody tr:hover {
+    background-color: #f9f9f9;
+}
+
+.odds-table .finished-match {
+    opacity: 0.7;
+    background-color: #fafafa;
+}
+
+.match-date-cell {
+    min-width: 100px;
+}
+
+.match-date {
+    font-size: 11px;
+    color: #666;
+    display: block;
+    white-space: nowrap;
+}
+
+.finished-badge {
+    display: inline-block;
+    background: #ff9800;
+    color: white;
+    font-size: 9px;
+    padding: 2px 5px;
+    border-radius: 4px;
+    margin-top: 3px;
+}
+
+.team-cell {
+    min-width: 110px;
+}
+
+.team-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.team-flag {
+    width: 24px;
+    height: 18px;
+    object-fit: cover;
+    border-radius: 3px;
+    border: 1px solid #ddd;
+}
+
+.team-name {
+    font-weight: 500;
+    color: #333;
+    font-size: 12px;
+}
+
+.odd-value {
+    font-weight: 600;
+    font-size: 14px;
+    text-align: center;
+    min-width: 60px;
+}
+
+.home-odd {
+    color: #2196f3;
+}
+
+.draw-odd {
+    color: #ff9800;
+}
+
+.away-odd {
+    color: #4caf50;
+}
+
+.odd-edit-cell {
+    padding: 4px 6px;
+}
+
+.odd-input {
+    width: 70px;
+    padding: 6px 4px;
+    text-align: center;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.odd-input:focus {
+    outline: none;
+    border-color: #2196f3;
+    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+.action-buttons {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    min-width: 60px;
+}
+
+.edit-button,
+.save-button,
+.cancel-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 5px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.edit-button {
+    color: #2196f3;
+}
+
+.edit-button:hover {
+    background-color: rgba(33, 150, 243, 0.1);
+    transform: scale(1.05);
+}
+
+.save-button {
+    color: #4caf50;
+}
+
+.save-button:hover {
+    background-color: rgba(76, 175, 80, 0.1);
+    transform: scale(1.05);
+}
+
+.cancel-button {
+    color: #f44336;
+}
+
+.cancel-button:hover {
+    background-color: rgba(244, 67, 54, 0.1);
+    transform: scale(1.05);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .odds-management-section {
+        padding: 12px;
+    }
+    
+    .odds-table-container {
+        max-width: 280px;
+    }
+    
+    .odds-table {
+        min-width: 650px;
+    }
+    
+    .team-flag {
+        width: 20px;
+        height: 15px;
+    }
+    
+    .team-name {
+        font-size: 11px;
+    }
+    
+    .odd-value {
+        font-size: 12px;
+        min-width: 50px;
+    }
+    
+    .odd-input {
+        width: 60px;
+        padding: 4px;
+        font-size: 11px;
+    }
+    
+    .match-date {
+        font-size: 10px;
+    }
+    
+    .action-buttons {
+        gap: 3px;
+        min-width: 50px;
+    }
+}

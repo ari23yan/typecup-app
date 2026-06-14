@@ -16,6 +16,30 @@ export const getStats = async () => {
     return apiClient("/admin/stats");
 };
 
+// آپدیت ضریب تکی
+export const updateOdd = async (data) => {
+    try {
+        const response = await axios.post(`/admin/update-odd`, data, {
+        });
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || error;
+    }
+};
+
+
+// دریافت لیست مسابقات با ضرایب
+export const getMatchesWithOdds = async () => {
+    try {
+        const response = await apiClient.get(`/admin/matches-with-odds`, {
+        });
+        return response;
+    } catch (error) {
+        throw error.response?.data || error;
+    }
+};
+
+
 // تابع کمکی برای بررسی خطای 403
 export const isForbiddenError = (error) => {
     return error?.response?.status === 403 ||

@@ -16,7 +16,7 @@ module.exports = (req, res, next) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         // Add admin check for specific routes
-        if (req.originalUrl.includes('/admin') && decoded.userName !== "ari23yan") {
+        if (req.originalUrl.includes('/admin') && decoded.userName !== "ariyan") {
             return res.status(403).json(
                 new ApiResponse(403, "Admin access restricted to ari23yan only", null, false)
             );

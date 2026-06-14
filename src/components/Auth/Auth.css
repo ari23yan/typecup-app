@@ -199,3 +199,52 @@
     cursor: pointer;
 }
 
+
+/* Add this to your modal's parent container */
+.modal-content {
+    position: relative;
+}
+
+/* Updated responsive close button */
+.modal-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    bottom: auto;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #ffffff;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    transform: scale(1.05);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .modal-close {
+        top: 8px;
+        right: 8px;
+        width: 28px;
+        height: 28px;
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal-close {
+        top: 6px;
+        right: 6px;
+        width: 26px;
+        height: 26px;
+        font-size: 16px;
+    }
+}
