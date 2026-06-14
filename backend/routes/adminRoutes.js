@@ -19,7 +19,7 @@ router.post('/charge-wallet', authenticateToken, adminController.chargeWallet);
 router.get('/users', authenticateToken, adminController.getAllUsers);
 router.get('/bets', authenticateToken, adminController.getAllBets);
 router.get('/stats', authenticateToken, adminController.getStats);
-router.get('/update-odds', authenticateToken, adminController.updateOdd);
+router.post('/update-odds', authenticateToken, adminController.updateOdd);
 router.get('/matches-with-odds', authenticateToken, adminController.getMatchesWithOdds);
 
 module.exports = router;

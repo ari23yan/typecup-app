@@ -88,7 +88,7 @@ export default function Admin() {
 
     // شروع ویرایش ضریب
     const handleEditOdd = (match) => {
-        setEditingOdd(match._id);
+        setEditingOdd(match.matchId);
         setEditFormData({
             homeWin: match.odds?.homeWin || "",
             draw: match.odds?.draw || "",
@@ -110,7 +110,7 @@ export default function Admin() {
         }
 
         try {
-            const result = await updateSingleOdd({
+            const result = await updateOdd({
                 matchId: matchId,
                 homeWin: parseFloat(editFormData.homeWin),
                 draw: parseFloat(editFormData.draw),
@@ -128,7 +128,6 @@ export default function Admin() {
             toast.error(error?.message || "خطا در به‌روزرسانی ضریب");
         }
     };
-
     // انتخاب/لغو انتخاب مسابقه برای ویرایش گروهی
     const toggleMatchSelection = (matchId) => {
         setSelectedMatches(prev => {
@@ -212,12 +211,11 @@ export default function Admin() {
             )}
 
             {/* بخش جدید: مدیریت ضریب بازی‌ها */}
-            {/* بخش جدید: مدیریت ضریب بازی‌ها */}
             <div className="odds-management-section">
                 <div className="section-header">
                     <h3>مدیریت ضریب بازی‌ها</h3>
                 </div>
-                <div className="odds-table-wrapper">
+                <div className="odds-table-wrapper" style={{ height: '500px', overflowY: 'auto' }}>
                     <div className="odds-table-container">
                         <table className="odds-table">
                             <thead>
@@ -233,8 +231,7 @@ export default function Admin() {
                             </thead>
                             <tbody>
                                 {matches.map((match) => {
-                                    // Extract data from both possible formats
-                                    const matchId = match.matchId || match._id;
+                                    const matchId = match.matchId;
                                     const homeTeamName = match.homeTeam?.name_fa || match.homeTeamNameFa || match.homeTeamName || '-';
                                     const homeTeamFlag = match.homeTeam?.flag || match.homeTeamFlag;
                                     const awayTeamName = match.awayTeam?.name_fa || match.awayTeamNameFa || match.awayTeamName || '-';
@@ -292,7 +289,7 @@ export default function Admin() {
                                                         />
                                                     </td>
                                                     <td className="action-buttons">
-                                                        <button onClick={() => handleSaveOdd(match)} className="save-button" title="ذخیره">
+                                                        <button onClick={() => handleSaveOdd(matchId)} className="save-button" title="ذخیره">
                                                             <FaSave />
                                                         </button>
                                                         <button onClick={handleCancelEdit} className="cancel-button" title="انصراف">

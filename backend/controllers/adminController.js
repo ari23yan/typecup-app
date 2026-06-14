@@ -487,9 +487,9 @@ exports.updateOdd = async (req, res) => {
 
         // جستجو و آپدیت ضریب
         const updatedOdd = await Odds.findOneAndUpdate(
-            { matchId: match._id }, // فیلتر برای پیدا کردن رکورد
+            { matchId: match.matchId }, // فیلتر برای پیدا کردن رکورد
             {
-                matchId: match._id,
+                matchId: match.matchId,
                 homeWin: parseFloat(homeWin),
                 draw: parseFloat(draw),
                 awayWin: parseFloat(awayWin),

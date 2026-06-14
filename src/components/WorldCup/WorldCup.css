@@ -1,6 +1,6 @@
 .worldcup-page {
     min-height: 100vh;
-    max-height: 100vh;
+    /* max-height: 100vh; */
     position: relative;
     overflow: hidden;
 
@@ -1548,4 +1548,8 @@
 /* For live matches */
 .live-team-flag-icon {
     font-size: 48px;
+}
+.white-color
+{
+    color: #fff !important;
 }

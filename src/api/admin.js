@@ -19,9 +19,9 @@ export const getStats = async () => {
 // آپدیت ضریب تکی
 export const updateOdd = async (data) => {
     try {
-        const response = await axios.post(`/admin/update-odd`, data, {
+        const response = await apiClient.post(`/admin/update-odds`, data, {
         });
-        return response.data;
+        return response;
     } catch (error) {
         throw error.response?.data || error;
     }
