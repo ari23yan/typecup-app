@@ -1,5 +1,6 @@
 .worldcup-page {
     min-height: 100vh;
+    max-height: 100vh;
     position: relative;
     overflow: hidden;
 
@@ -657,7 +658,7 @@
 }
 
 .predict-btn {
-    background: linear-gradient(135deg, #19408e 0%, #193c8d 100%);
+    background: linear-gradient(135deg, #1049cb 0%, #1049cb 100%);
     border: none;
     color: white;
     padding: 8px 24px;
@@ -1184,12 +1185,12 @@
 }
 
 .my-bets-list::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.3);
     border-radius: 4px;
 }
 
 .my-bets-list::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.3);
 }
 
 @keyframes spin {
@@ -1487,12 +1488,12 @@
 }
 
 .live-matches-list::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.3);
     border-radius: 4px;
 }
 
 .live-matches-list::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.3);
 }
 
 /* Responsive */
@@ -1527,22 +1528,24 @@
         padding: 10px;
     }
 }
-.timer
-{
+
+.timer {
     font-size: 13px;
     padding-top: 2px;
 }
+
 /* Make flags bigger globally */
 .fi {
-  font-size: 32px;  /* Adjust this value */
+    font-size: 32px;
+    /* Adjust this value */
 }
 
 /* Or specifically for your team flags */
 .team-flag-icon {
-  font-size: 40px;
+    font-size: 40px;
 }
 
 /* For live matches */
 .live-team-flag-icon {
-  font-size: 48px;
+    font-size: 48px;
 }

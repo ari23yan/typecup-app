@@ -1,13 +1,22 @@
+/* MainForm.css */
+
 .main-container {
-  width: 100vw;
-  height: 100vh;
+  /* width: 100vw; - حذف شود */
+  /* height: 100vh; - حذف شود */
+  width: 100%;
+  min-height: 100vh;
 
   display: flex;
   justify-content: center;
   align-items: center;
 
   font-family: "Vazirmatn", sans-serif;
+
+  /* اضافه شده برای ریسپانسیو */
+  padding: 16px;
+  box-sizing: border-box;
 }
+
 
 .menu-box {
   width: 320px;
@@ -27,6 +36,123 @@
   animation: popIn 0.25s ease;
 }
 
+/* استایل‌های ریسپانسیو برای موبایل */
+@media (max-width: 480px) {
+  .main-container {
+    padding: 12px;
+    align-items: flex-start;
+    padding-top: 40px;
+  }
+
+  .menu-box {
+    width: 100%;
+    max-width: 320px;
+    padding: 24px 20px;
+    margin: 0 auto;
+  }
+
+  .title {
+    font-size: 36px;
+    margin-bottom: 24px;
+    gap: 8px;
+  }
+
+  .cup-icon {
+    font-size: 1em;
+  }
+
+  .menu-btn {
+    padding: 12px 0;
+    margin: 6px 0;
+    font-size: 16px;
+    border-radius: 10px;
+  }
+
+  .world-cup-title {
+    font-size: 22px !important;
+  }
+
+  .world-cup-title:hover .word-part::after {
+    font-size: 22px;
+  }
+
+  /* مودال درباره ما در موبایل */
+  .modal-content {
+    width: 90%;
+    max-width: 350px;
+    padding: 20px;
+    margin: 16px;
+    box-sizing: border-box;
+  }
+
+  .modal-title {
+    font-size: 20px;
+    margin-bottom: 12px;
+  }
+
+  .modal-text {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .modal-repo {
+    font-size: 12px;
+    word-break: break-word;
+  }
+
+  .repo-link {
+    font-size: 12px;
+    display: inline-block;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .modal-dev {
+    font-size: 12px;
+  }
+
+  .profile-divider {
+    margin: 12px 0;
+  }
+}
+
+/* برای صفحه‌های بسیار کوچک (حدود 360px) */
+@media (max-width: 360px) {
+  .menu-box {
+    padding: 20px 16px;
+  }
+
+  .title {
+    font-size: 32px;
+  }
+
+  .menu-btn {
+    padding: 10px 0;
+    font-size: 14px;
+  }
+
+  .world-cup-title {
+    font-size: 18px !important;
+  }
+
+  .world-cup-title:hover .word-part::after {
+    font-size: 18px;
+  }
+}
+
+/* برای تبلت‌های کوچک (بین 481px تا 768px) */
+@media (min-width: 481px) and (max-width: 768px) {
+  .menu-box {
+    width: 380px;
+    padding: 32px 40px;
+  }
+
+  .title {
+    font-size: 44px;
+  }
+}
+
+/* ریست‌های کلی برای بهبود نمایش در موبایل */
 @keyframes fadeIn1 {
   from {
     opacity: 0;
@@ -38,7 +164,6 @@
     transform: scale(1);
   }
 }
-
 
 .menu-btn {
   width: 100%;
@@ -112,13 +237,9 @@
   background: rgba(255, 255, 255, 0.07);
   border-radius: 18px;
 
-
   border: 1px solid rgb(255 255 255 / 12%);
 
   box-shadow: 0 15px 14px rgb(0 0 0 / 2%);
-
-
-
 
   animation: popIn 0.25s ease;
 }
@@ -153,7 +274,6 @@
 .close-btn:hover {
   background: #fb8c00;
   transform: translateY(-1px);
-
 }
 
 @keyframes popIn {
@@ -189,7 +309,7 @@
   font-size: 28px;
   font-weight: 700;
   font-family: 'Orbitron', sans-serif;
-  text-decoration: none
+  text-decoration: none;
 }
 
 .icon-wordCup {
@@ -246,4 +366,3 @@
   font-weight: 700;
   font-family: 'Orbitron', sans-serif;
 }
-
