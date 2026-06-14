@@ -108,6 +108,91 @@ const stadiumTimezones = {
     16: "America/Los_Angeles"
 };
 
+
+async function settleBetsForMatch(matchId, result) {
+    try {
+        // پیدا کردن همه شرط‌های فعال برای این مسابقه
+        const bets = await Bet.find({
+            matchId: matchId,
+            status: 'pending'
+        });
+
+        if (!bets.length) {
+            console.log(`📭 No pending bets for match ${matchId}`);
+            return;
+        }
+
+        console.log(`💰 Processing ${bets.length} bets for match ${matchId}`);
+
+        for (const bet of bets) {
+            let betResult = 'lost';
+            let winAmount = 0;
+
+            // تعیین نتیجه شرط بر اساس نوع آن
+            if (bet.betType === '1x2') {
+                // پیش‌بینی: home, draw, away
+                const matchResult = getMatchResult(result.homeScore, result.awayScore);
+                if (bet.prediction === matchResult) {
+                    betResult = 'won';
+                    winAmount = bet.amount * bet.odds;
+                }
+            }
+            else if (bet.betType === 'over_under') {
+                // پیش‌بینی: over یا زیر
+                const totalGoals = result.homeScore + result.awayScore;
+                const line = bet.line || 2.5;
+
+                if (bet.prediction === 'over' && totalGoals > line) {
+                    betResult = 'won';
+                    winAmount = bet.amount * bet.odds;
+                } else if (bet.prediction === 'under' && totalGoals < line) {
+                    betResult = 'won';
+                    winAmount = bet.amount * bet.odds;
+                }
+            }
+            else if (bet.betType === 'both_teams_to_score') {
+                const bothScored = result.homeScore > 0 && result.awayScore > 0;
+                if ((bet.prediction === 'yes' && bothScored) ||
+                    (bet.prediction === 'no' && !bothScored)) {
+                    betResult = 'won';
+                    winAmount = bet.amount * bet.odds;
+                }
+            }
+
+            // به‌روزرسانی شرط
+            await Bet.updateOne({ _id: bet._id }, {
+                $set: {
+                    status: betResult,
+                    result: `${result.homeScore}-${result.awayScore}`,
+                    settledAt: new Date(),
+                    winAmount: winAmount
+                }
+            });
+
+            // اگر برنده شده، به کیف پول کاربر اضافه کن
+            if (betResult === 'won') {
+                await User.updateOne(
+                    { _id: bet.userId },
+                    { $inc: { wallet: winAmount } }
+                );
+                console.log(`💵 User ${bet.userId} won ${winAmount} on bet ${bet._id}`);
+            }
+        }
+
+        console.log(`✅ Settled ${bets.length} bets for match ${matchId}`);
+
+    } catch (error) {
+        console.error(`❌ Error settling bets for match ${matchId}:`, error);
+    }
+}
+
+function getMatchResult(homeScore, awayScore) {
+    if (homeScore > awayScore) return 'home';
+    if (homeScore < awayScore) return 'away';
+    return 'draw';
+}
+
+
 // تابع جداگانه برای پردازش هر مسابقه
 async function processGame(game) {
     const zone = stadiumTimezones[String(game.stadium_id)];
@@ -232,6 +317,13 @@ async function processGame(game) {
             isLive: isLive,
             timeElapsed: game.time_elapsed
         };
+
+        if (status === 'finished' && !match.betsSettled) {
+            await settleBetsForMatch(matchId, {
+                homeScore: parseInt(game.home_score),
+                awayScore: parseInt(game.away_score)
+            });
+        }
 
         if (game.home_scorers !== 'null') {
             updateData.homeScorers = game.home_scorers;

@@ -72,7 +72,7 @@ export default function WorldCup() {
         }
     };
 
-    // تابع برای نمایش وضعیت شرط به فارسی
+    // تابع برای نمایش وضعیت پیشبینی به فارسی
     const getStatusText = (status) => {
         switch (status) {
             case 'PENDING':
@@ -260,7 +260,7 @@ export default function WorldCup() {
         }
 
         if (amount < 1000) {
-            toast.error("حداقل مبلغ شرط ۱,۰۰۰ تومان است");
+            toast.error("حداقل مبلغ پیش بینی ۱,۰۰۰ تومان است");
             return;
         }
 
@@ -273,13 +273,13 @@ export default function WorldCup() {
                 amount: amount
             });
             if (result.success) {
-                toast.success("شرط شما با موفقیت ثبت شد!");
+                toast.success("پیشبینی شما با موفقیت ثبت شد!");
 
                 fetchWallet();
                 fetchMyBets();
                 handleCloseBetModal();
             } else {
-                toast.error(result.message || "خطا در ثبت شرط");
+                toast.error(result.message || "خطا در ثبت پیشبینی");
             }
         } catch (error) {
             console.error("Error placing bet:", error);
@@ -367,7 +367,7 @@ export default function WorldCup() {
                                         className="match-item"
                                         onClick={(e) => handleOpenBetModal(match, e)}
                                     >
-                                        <div className="match-date">
+                                        <div className="match-date" style={{ color: '#FFFF' }}>
                                             {toPersianDate(match.kickoffUtc)}
                                         </div>
 
@@ -381,14 +381,14 @@ export default function WorldCup() {
                                                 <span className={`fi fi-${getCountryCode(match.homeTeam.flag)}`}></span>
 
 
-                                                <span className="team-name">{match.homeTeam.name_fa}</span>
+                                                <span className="team-name white-color" >{match.homeTeam.name_fa}</span>
                                             </div>
 
                                             <div className="match-vs">VS</div>
 
-                                            <div className="team away-team">
+                                            <div className="team away-team" >
                                                 <span className={`fi fi-${getCountryCode(match.awayTeam.flag)}`}></span>
-                                                <span className="team-name">{match.awayTeam.name_fa}</span>
+                                                <span className="team-name white-color" >{match.awayTeam.name_fa}</span>
                                             </div>
                                         </div>
 
@@ -462,7 +462,7 @@ export default function WorldCup() {
                                                             </span>
                                                         </div>
                                                         <div className="bet-detail">
-                                                            <span className="detail-label">مبلغ شرط:</span>
+                                                            <span className="detail-label">مبلغ پیشبینی:</span>
                                                             <span className="detail-value">
                                                                 {bet.stake?.toLocaleString("fa-IR")} تومان
                                                             </span>
@@ -614,7 +614,7 @@ export default function WorldCup() {
 
                             {/* Amount Input */}
                             <div className="modal-amount">
-                                <h4>مبلغ شرط (تومان):</h4>
+                                <h4>مبلغ پیشبینی (تومان):</h4>
                                 <input
                                     type="text"
                                     value={betAmount}
@@ -640,7 +640,7 @@ export default function WorldCup() {
                             {selectedSelection && betAmount && parseInt(betAmount) > 0 && (
                                 <div className="modal-calculation">
                                     <div className="calc-row">
-                                        <span>مبلغ شرط:</span>
+                                        <span>مبلغ پیشبینی:</span>
                                         <span>{parseInt(betAmount).toLocaleString("fa-IR")} تومان</span>
                                     </div>
                                     <div className="calc-row">
@@ -683,7 +683,7 @@ export default function WorldCup() {
                                         در حال ثبت...
                                     </>
                                 ) : (
-                                    "ثبت شرط"
+                                    "ثبت پیشبینی"
                                 )}
                             </button>
                         </div>
