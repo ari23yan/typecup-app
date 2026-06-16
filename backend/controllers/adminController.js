@@ -460,11 +460,11 @@ exports.getStats = async (req, res) => {
 
 // آپدیت چند ضریب به صورت همزمان
 // آپدیت ضریب یک بازی به صورت تکی
+// آپدیت ضریب یک بازی به صورت تکی
 exports.updateOdd = async (req, res) => {
     try {
         const { matchId, homeWin, draw, awayWin } = req.body;
 
-        // اعتبارسنجی ورودی‌ها
         if (!matchId) {
             return res.status(400).json(
                 new ApiResponse(400, "شناسه مسابقه الزامی است", null, false)
@@ -473,33 +473,44 @@ exports.updateOdd = async (req, res) => {
 
         if (!homeWin || !draw || !awayWin) {
             return res.status(400).json(
-                new ApiResponse(400, "ضرایب خانه، مساوی و مهمان الزامی هستند", null, false)
+                new ApiResponse(400, "تمام ضرایب (خانه، مساوی، مهمان) الزامی هستند", null, false)
             );
         }
 
         // بررسی وجود مسابقه
-        const match = await Match.findOne({ matchId: matchId });
+        const match = await Match.findOne({ matchId: matchId })
+            .populate('homeTeam', 'name_fa name_en')
+            .populate('awayTeam', 'name_fa name_en');
+
         if (!match) {
             return res.status(404).json(
                 new ApiResponse(404, "مسابقه مورد نظر یافت نشد", null, false)
             );
         }
 
-        // جستجو و آپدیت ضریب
+        // آپدیت یا ایجاد Odds
         const updatedOdd = await Odds.findOneAndUpdate(
-            { matchId: match.matchId }, // فیلتر برای پیدا کردن رکورد
+            { matchId: matchId },
             {
-                matchId: match.matchId,
+                matchId: matchId,
                 homeWin: parseFloat(homeWin),
                 draw: parseFloat(draw),
                 awayWin: parseFloat(awayWin),
                 updatedAt: new Date()
             },
             {
-                upsert: true, // اگر وجود نداشت ایجاد کن
-                new: true     // رکورد جدید را برگردان
+                upsert: true,
+                new: true,
+                runValidators: true
             }
         );
+
+        // لاگ برای دیباگ (مهم)
+        console.log(`✅ Odds updated for match ${matchId}:`, {
+            homeWin: updatedOdd.homeWin,
+            draw: updatedOdd.draw,
+            awayWin: updatedOdd.awayWin
+        });
 
         return res.json(
             new ApiResponse(
@@ -507,8 +518,8 @@ exports.updateOdd = async (req, res) => {
                 "ضریب مسابقه با موفقیت آپدیت شد",
                 {
                     matchId: match.matchId,
-                    homeTeam: match.homeTeamNameFa,
-                    awayTeam: match.awayTeamNameFa,
+                    homeTeam: match.homeTeam?.name_fa || match.homeTeamNameFa || 'نامشخص',
+                    awayTeam: match.awayTeam?.name_fa || match.awayTeamNameFa || 'نامشخص',
                     odds: {
                         homeWin: updatedOdd.homeWin,
                         draw: updatedOdd.draw,
@@ -521,14 +532,9 @@ exports.updateOdd = async (req, res) => {
         );
 
     } catch (error) {
-        console.error('updateSingleOdd error:', error);
+        console.error('updateOdd error:', error);
         return res.status(500).json(
-            new ApiResponse(
-                500,
-                MESSAGES.ERROR.DEFAULT,
-                null,
-                false
-            )
+            new ApiResponse(500, "خطا در آپدیت ضریب", null, false)
         );
     }
 };
