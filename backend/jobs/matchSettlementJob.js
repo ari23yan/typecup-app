@@ -1,15 +1,15 @@
 const cron = require('node-cron');
 const axios = require('axios');
 const Match = require('../models/worldcup/Match');
-const Odds = require('../models/worldcup/Odds');
 const Bet = require('../models/worldcup/Bet');
 const User = require("../models/User");
 const Team = require("../models/worldcup/Team");
 const { DateTime } = require('luxon');
-// برای تست - استفاده از MOCK DATA
-const USE_MOCK = false; // تغییر به false برای استفاده از API واقعی
 
-// Mock Data
+// ==================== تنظیمات ====================
+const USE_MOCK = false; // false = استفاده از API واقعی
+
+// Mock Data برای تست
 const mockMatchData = {
     "games": [
         {
@@ -37,309 +37,195 @@ const mockMatchData = {
     ]
 };
 
-// every 1 minute
-cron.schedule('* * * * *', async () => {
-    console.log('checking matches...');
-    console.log('=================================');
-
-    try {
-        // افزایش timeout کلی برای کل عملیات
-        const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Cron job timeout after 2 minutes')), 120000)
-        );
-
-        const mainPromise = (async () => {
-            let games;
-
-            if (USE_MOCK) {
-                console.log('🔵 Using MOCK DATA for testing');
-                games = mockMatchData.games;
-            } else {
-                const response = await axios.get('http://185.173.104.222:3000/games', {
-                    timeout: 30000 // 30 ثانیه
-                });
-                games = response.data.games || [];
-            }
-
-            if (!games || !games.length) {
-                console.log('No games data received');
-                return;
-            }
-
-            console.log(`📊 Total games from API: ${games.length}`);
-
-            // پردازش همزمان مسابقات با Promise.all
-            const batchSize = 5; // پردازش 5 تایی همزمان
-            for (let i = 0; i < games.length; i += batchSize) {
-                const batch = games.slice(i, i + batchSize);
-                await Promise.all(batch.map(game => processGame(game)));
-                console.log(`✅ Processed batch ${i / batchSize + 1}/${Math.ceil(games.length / batchSize)}`);
-            }
-        })();
-
-        // اجرا با timeout
-        await Promise.race([mainPromise, timeoutPromise]);
-
-        console.log('=================================');
-        console.log('Cron job completed\n');
-
-    } catch (err) {
-        console.log('❌ Cron job error:', err.message);
-        console.error(err);
-    }
-});
-
 const stadiumTimezones = {
-    1: "America/Mexico_City",
-    2: "America/Mexico_City",
-    3: "America/Monterrey",
-    4: "America/Chicago",
-    5: "America/Chicago",
-    6: "America/Chicago",
-    7: "America/New_York",
-    8: "America/New_York",
-    9: "America/New_York",
-    10: "America/New_York",
-    11: "America/New_York",
-    12: "America/Toronto",
-    13: "America/Vancouver",
-    14: "America/Los_Angeles",
-    15: "America/Los_Angeles",
+    1: "America/Mexico_City", 2: "America/Mexico_City", 3: "America/Monterrey",
+    4: "America/Chicago", 5: "America/Chicago", 6: "America/Chicago",
+    7: "America/New_York", 8: "America/New_York", 9: "America/New_York",
+    10: "America/New_York", 11: "America/New_York", 12: "America/Toronto",
+    13: "America/Vancouver", 14: "America/Los_Angeles", 15: "America/Los_Angeles",
     16: "America/Los_Angeles"
 };
-
-
-async function settleBetsForMatch(matchId, result) {
-    try {
-        // پیدا کردن همه شرط‌های فعال برای این مسابقه
-        const bets = await Bet.find({
-            matchId: matchId,
-            status: 'pending'
-        });
-
-        if (!bets.length) {
-            console.log(`📭 No pending bets for match ${matchId}`);
-            return;
-        }
-
-        console.log(`💰 Processing ${bets.length} bets for match ${matchId}`);
-
-        for (const bet of bets) {
-            let betResult = 'lost';
-            let winAmount = 0;
-
-            // تعیین نتیجه شرط بر اساس نوع آن
-            if (bet.betType === '1x2') {
-                // پیش‌بینی: home, draw, away
-                const matchResult = getMatchResult(result.homeScore, result.awayScore);
-                if (bet.prediction === matchResult) {
-                    betResult = 'won';
-                    winAmount = bet.amount * bet.odds;
-                }
-            }
-            else if (bet.betType === 'over_under') {
-                // پیش‌بینی: over یا زیر
-                const totalGoals = result.homeScore + result.awayScore;
-                const line = bet.line || 2.5;
-
-                if (bet.prediction === 'over' && totalGoals > line) {
-                    betResult = 'won';
-                    winAmount = bet.amount * bet.odds;
-                } else if (bet.prediction === 'under' && totalGoals < line) {
-                    betResult = 'won';
-                    winAmount = bet.amount * bet.odds;
-                }
-            }
-            else if (bet.betType === 'both_teams_to_score') {
-                const bothScored = result.homeScore > 0 && result.awayScore > 0;
-                if ((bet.prediction === 'yes' && bothScored) ||
-                    (bet.prediction === 'no' && !bothScored)) {
-                    betResult = 'won';
-                    winAmount = bet.amount * bet.odds;
-                }
-            }
-
-            // به‌روزرسانی شرط
-            await Bet.updateOne({ _id: bet._id }, {
-                $set: {
-                    status: betResult,
-                    result: `${result.homeScore}-${result.awayScore}`,
-                    settledAt: new Date(),
-                    winAmount: winAmount
-                }
-            });
-
-            // اگر برنده شده، به کیف پول کاربر اضافه کن
-            if (betResult === 'won') {
-                await User.updateOne(
-                    { _id: bet.userId },
-                    { $inc: { wallet: winAmount } }
-                );
-                console.log(`💵 User ${bet.userId} won ${winAmount} on bet ${bet._id}`);
-            }
-        }
-
-        console.log(`✅ Settled ${bets.length} bets for match ${matchId}`);
-
-    } catch (error) {
-        console.error(`❌ Error settling bets for match ${matchId}:`, error);
-    }
-}
-
+// ==================== توابع کمکی ====================
 function getMatchResult(homeScore, awayScore) {
     if (homeScore > awayScore) return 'home';
     if (homeScore < awayScore) return 'away';
     return 'draw';
 }
 
-
-// تابع جداگانه برای پردازش هر مسابقه
-async function processGame(game) {
-    const zone = stadiumTimezones[String(game.stadium_id)];
-
-    let stadiumTime;
-
-    if (game.local_date.includes("T")) {
-        stadiumTime = DateTime.fromISO(game.local_date, { zone });
-    } else {
-        stadiumTime = DateTime.fromFormat(
-            game.local_date,
-            "MM/dd/yyyy HH:mm",
-            { zone }
-        );
-    }
-
-    const iranTime = stadiumTime.setZone("Asia/Tehran"); const matchId = String(game.id).trim();
-
-    // جستجوی مسابقه در دیتابیس
-    let match = await Match.findOne({ matchId: matchId });
-
-    // تعیین وضعیت مسابقه با منطق کامل
-    let status = 'notstarted';
-    let isFinished = false;
-    let isLive = false;
-
-    // محاسبه زمان مسابقه
-
-
-    // منطق تعیین وضعیت (همان کد قبلی شما)
-    if (game.finished === 'TRUE' || game.time_elapsed === 'FT' || game.time_elapsed === 'fulltime') {
-        status = 'finished';
-        isFinished = true;
-        isLive = false;
-    } else if (game.time_elapsed === 'live' || game.time_elapsed === '1st' || game.time_elapsed === '2nd') {
-        status = 'live';
-        isLive = true;
-        isFinished = false;
-    } else if (game.time_elapsed === 'HT' || game.time_elapsed === 'halftime') {
-        status = 'HT';
-        isLive = true;
-        isFinished = false;
-    }
-    else if (game.time_elapsed === 'notstarted' || game.time_elapsed === 'NS') {
-        status = 'notstarted';
-        isLive = false;
-        isFinished = false;
-    } else {
-        status = 'notstarted';
-        isLive = false;
-        isFinished = false;
-    }
-
-    // اگر مسابقه وجود نداشت، ایجاد کن
-    if (!match) {
-        // پیدا کردن تیم‌ها (با استفاده از lean() برای سرعت بیشتر)
-        let [homeTeam, awayTeam] = await Promise.all([
-            Team.findOne({ teamId: String(game.home_team_id).trim() }).lean(),
-            Team.findOne({ teamId: String(game.away_team_id).trim() }).lean()
-        ]);
-
-        if (!homeTeam) {
-            homeTeam = new Team({
-                teamId: String(game.home_team_id).trim(),
-                name_en: game.home_team_name_en,
-                name_fa: game.home_team_name_fa,
-            });
-            await homeTeam.save();
-        }
-
-        if (!awayTeam) {
-            awayTeam = new Team({
-                teamId: String(game.away_team_id).trim(),
-                name_en: game.away_team_name_en,
-                name_fa: game.away_team_name_fa,
-            });
-            await awayTeam.save();
-        }
-
-        // ایجاد مسابقه جدید
-        match = new Match({
+// تسویه شرط‌ها - نسخه اصلاح شده با فیلدهای درست مدل
+async function settleBetsForMatch(matchId, result) {
+    try {
+        const bets = await Bet.find({
             matchId: matchId,
-            homeTeam: homeTeam._id,
-            awayTeam: awayTeam._id,
-            homeTeamId: String(game.home_team_id).trim(),
-            awayTeamId: String(game.away_team_id).trim(),
-            homeScore: game.home_score !== 'null' ? parseInt(game.home_score) : 0,
-            awayScore: game.away_score !== 'null' ? parseInt(game.away_score) : 0,
-            localDate: game.local_date,
-            kickoffUtc: DateTime.fromFormat(
-                game.local_date,
-                "MM/dd/yyyy HH:mm",
-                { zone }
-            ).toUTC().toISO(),
-            persianDate: game.persian_date,
-            status: status,
-            round: parseInt(game.matchday),
-            isFinished: isFinished,
-            isLive: isLive,
-            venue: game.stadium_id ? `Stadium ${game.stadium_id}` : null,
-            group: game.group,
-            matchday: game.matchday,
-            timeElapsed: game.time_elapsed,
-            type: game.type,
-            homeScorers: game.home_scorers !== 'null' ? game.home_scorers : null,
-            awayScorers: game.away_scorers !== 'null' ? game.away_scorers : null,
-            leagueId: "4429",
-            betsSettled: false,
-            isPostponed: false,
-            stadiumId: game.stadium_id
+            status: 'PENDING'
         });
 
-        await match.save();
-        console.log(`✅ NEW MATCH: ${matchId}`);
-    } else {
-        // به‌روزرسانی مسابقه موجود با استفاده از updateOne برای سرعت بیشتر
-        const updateData = {
-            homeScore: game.home_score !== 'null' ? parseInt(game.home_score) : 0,
-            awayScore: game.away_score !== 'null' ? parseInt(game.away_score) : 0,
-            status: status,
-            isFinished: isFinished,
-            isLive: isLive,
-            timeElapsed: game.time_elapsed
-        };
+        if (!bets.length) return;
 
-        if (status === 'finished' && !match.betsSettled) {
-            await settleBetsForMatch(matchId, {
-                homeScore: parseInt(game.home_score),
-                awayScore: parseInt(game.away_score)
+        console.log(`💰 Processing ${bets.length} bets for match ${matchId}`);
+
+        for (const bet of bets) {
+            const matchResult = getMatchResult(result.homeScore, result.awayScore);
+            const expectedSelection = matchResult.toUpperCase();
+
+            let betResult = 'LOST';
+            let payoutAmount = 0;
+
+            if (bet.selection === expectedSelection) {
+                betResult = 'WON';
+                payoutAmount = Math.round(bet.stake * bet.odd);   
+            }
+
+            // آپدیت با فیلدهای درست مدل
+            await Bet.updateOne({ _id: bet._id }, {
+                $set: {
+                    status: betResult,
+                    payout: payoutAmount,      
+                    settledAt: new Date()
+                }
             });
-        }
 
-        if (game.home_scorers !== 'null') {
-            updateData.homeScorers = game.home_scorers;
+            if (betResult === 'WON') {
+                await User.updateOne(
+                    { _id: bet.userId },
+                    { $inc: { wallet: payoutAmount } }
+                );
+                console.log(`💵 WON → Bet ${bet._id} | +${payoutAmount} تومان`);
+            } else {
+                console.log(`❌ LOST → Bet ${bet._id}`);
+            }
         }
-        if (game.away_scorers !== 'null') {
-            updateData.awayScorers = game.away_scorers;
-        }
-
-        if (status === 'finished' && !match.betsSettled) {
-            updateData.betsSettled = true;
-            console.log(`🏁 Match ${matchId} finished, bets ready to settle`);
-        }
-
-        await Match.updateOne({ matchId: matchId }, { $set: updateData });
-        console.log(`✅ UPDATED: ${matchId} - ${status}`);
+    } catch (error) {
+        console.error(`❌ Error settling bets for ${matchId}:`, error.message);
     }
 }
 
-console.log('Cron job started - checking every minute');
+// فیکس خودکار شرط‌های قدیمی
+async function settleAllPendingBets() {
+    try {
+        const pendingBets = await Bet.find({ status: 'PENDING' }).lean();
+
+        if (!pendingBets.length) return;
+
+        console.log(`🔧 Auto-fixing ${pendingBets.length} pending bets...`);
+
+        for (const bet of pendingBets) {
+            const match = await Match.findOne({ matchId: bet.matchId });
+            if (match && (match.isFinished || match.status === 'finished')) {
+                await settleBetsForMatch(bet.matchId, {
+                    homeScore: Number(match.homeScore || 0),
+                    awayScore: Number(match.awayScore || 0)
+                });
+            }
+        }
+    } catch (error) {
+        console.error('❌ Error in settleAllPendingBets:', error.message);
+    }
+}
+
+// ==================== پردازش مسابقه ====================
+async function processGame(game) {
+    try {
+        const zone = stadiumTimezones[String(game.stadiumId || game.stadium_id)] || "UTC";
+        let stadiumTime = game.local_date?.includes("T") 
+            ? DateTime.fromISO(game.local_date, { zone })
+            : DateTime.fromFormat(game.local_date, "MM/dd/yyyy HH:mm", { zone });
+
+        const matchId = String(game.id).trim();
+        let match = await Match.findOne({ matchId });
+
+        let status = 'notstarted';
+        let isFinished = false;
+        let isLive = false;
+
+        if (game.finished === 'TRUE' || ['FT', 'finished', 'fulltime'].includes(game.time_elapsed)) {
+            status = 'finished';
+            isFinished = true;
+        } else if (['live', '1st', '2nd'].includes(game.time_elapsed)) {
+            status = 'live';
+            isLive = true;
+        } else if (['HT', 'halftime'].includes(game.time_elapsed)) {
+            status = 'HT';
+            isLive = true;
+        }
+
+        const homeScore = parseInt(game.home_score || 0);
+        const awayScore = parseInt(game.away_score || 0);
+
+        if (!match) {
+            // ایجاد مسابقه جدید (کد قبلی)
+            let [homeTeam, awayTeam] = await Promise.all([
+                Team.findOne({ teamId: String(game.home_team_id).trim() }).lean(),
+                Team.findOne({ teamId: String(game.away_team_id).trim() }).lean()
+            ]);
+
+            if (!homeTeam) {
+                homeTeam = new Team({ teamId: String(game.home_team_id).trim(), name_en: game.home_team_name_en, name_fa: game.home_team_name_fa });
+                await homeTeam.save();
+            }
+            if (!awayTeam) {
+                awayTeam = new Team({ teamId: String(game.away_team_id).trim(), name_en: game.away_team_name_en, name_fa: game.away_team_name_fa });
+                await awayTeam.save();
+            }
+
+            match = new Match({
+                matchId, homeTeam: homeTeam._id, awayTeam: awayTeam._id,
+                homeTeamId: String(game.home_team_id).trim(),
+                awayTeamId: String(game.away_team_id).trim(),
+                homeScore, awayScore,
+                localDate: game.local_date,
+                kickoffUtc: stadiumTime.toUTC().toISO(),
+                persianDate: game.persian_date,
+                status, round: parseInt(game.matchday || 0),
+                isFinished, isLive,
+                venue: `Stadium ${game.stadiumId || game.stadium_id}`,
+                group: game.group, matchday: game.matchday,
+                timeElapsed: game.time_elapsed, type: game.type,
+                leagueId: "4429", betsSettled: false,
+                stadiumId: game.stadiumId || game.stadium_id
+            });
+            await match.save();
+            console.log(`✅ NEW MATCH: ${matchId}`);
+        } else {
+            const updateData = { homeScore, awayScore, status, isFinished, isLive, timeElapsed: game.time_elapsed };
+
+            if (status === 'finished' && !match.betsSettled) {
+                await settleBetsForMatch(matchId, { homeScore, awayScore });
+                updateData.betsSettled = true;
+            }
+
+            await Match.updateOne({ matchId }, { $set: updateData });
+            console.log(`✅ UPDATED: ${matchId} → ${status}`);
+        }
+    } catch (err) {
+        console.error(`❌ Error in processGame ${game.id}:`, err.message);
+    }
+}
+
+// ==================== کرون جاب ====================
+cron.schedule('* * * * *', async () => {
+    console.log('🔄 Checking matches...');
+
+    try {
+        let games = USE_MOCK 
+            ? mockMatchData.games 
+            : (await axios.get('http://185.173.104.222:3000/games', { timeout: 30000 })).data.games || [];
+
+        if (games.length) {
+            const batchSize = 5;
+            for (let i = 0; i < games.length; i += batchSize) {
+                const batch = games.slice(i, i + batchSize);
+                await Promise.all(batch.map(game => processGame(game)));
+            }
+        }
+
+        // فیکس شرط‌های قدیمی
+        await settleAllPendingBets();
+
+        console.log('✅ Cron job completed\n');
+    } catch (err) {
+        console.error('❌ Cron error:', err.message);
+    }
+});
+
+console.log('🚀 Cron job started - checking every minute');
