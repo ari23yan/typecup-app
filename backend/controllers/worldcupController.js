@@ -14,11 +14,17 @@ exports.getMatches = async (req, res) => {
         const todayStart = new Date(nowInIran);
         todayStart.setHours(0, 0, 0, 0);
 
+
+        // دیروز به جای امروز
+        const yesterdayStart = new Date(nowInIran);
+        yesterdayStart.setDate(yesterdayStart.getDate() - 1);  // یک روز عقب‌تر
+        yesterdayStart.setHours(0, 0, 0, 0);
+
         const todayEnd = new Date(nowInIran);
         todayEnd.setHours(23, 59, 59, 999);
 
         // تبدیل به UTC برای مقایسه با دیتابیس
-        const startUTC = new Date(todayStart.toLocaleString("en-US", { timeZone: "UTC" }));
+        const startUTC = new Date(yesterdayStart.toLocaleString("en-US", { timeZone: "UTC" }));
         const endUTC = new Date(todayEnd.toLocaleString("en-US", { timeZone: "UTC" }));
 
 

@@ -73,25 +73,37 @@ async function settleBetsForMatch(matchId, result) {
 
             if (bet.selection === expectedSelection) {
                 betResult = 'WON';
-                payoutAmount = Math.round(bet.stake * bet.odd);   
+                payoutAmount = Math.round(bet.stake * bet.odd);
             }
 
             // آپدیت با فیلدهای درست مدل
             await Bet.updateOne({ _id: bet._id }, {
                 $set: {
                     status: betResult,
-                    payout: payoutAmount,      
+                    payout: payoutAmount,
                     settledAt: new Date()
                 }
             });
 
             if (betResult === 'WON') {
+                // اصلاح شده: به‌روزرسانی wallet.balance
                 await User.updateOne(
                     { _id: bet.userId },
-                    { $inc: { wallet: payoutAmount } }
+                    {
+                        $inc: {
+                            'wallet.balance': payoutAmount,
+                            'wallet.totalWin': payoutAmount,
+                            'bettingStats.wonBets': 1
+                        }
+                    }
                 );
                 console.log(`💵 WON → Bet ${bet._id} | +${payoutAmount} تومان`);
             } else {
+                // برای شرط‌های باخته، آمار را به‌روزرسانی کنید
+                await User.updateOne(
+                    { _id: bet.userId },
+                    { $inc: { 'bettingStats.lostBets': 1 } }
+                );
                 console.log(`❌ LOST → Bet ${bet._id}`);
             }
         }
@@ -99,7 +111,6 @@ async function settleBetsForMatch(matchId, result) {
         console.error(`❌ Error settling bets for ${matchId}:`, error.message);
     }
 }
-
 // فیکس خودکار شرط‌های قدیمی
 async function settleAllPendingBets() {
     try {
@@ -127,7 +138,7 @@ async function settleAllPendingBets() {
 async function processGame(game) {
     try {
         const zone = stadiumTimezones[String(game.stadiumId || game.stadium_id)] || "UTC";
-        let stadiumTime = game.local_date?.includes("T") 
+        let stadiumTime = game.local_date?.includes("T")
             ? DateTime.fromISO(game.local_date, { zone })
             : DateTime.fromFormat(game.local_date, "MM/dd/yyyy HH:mm", { zone });
 
@@ -207,8 +218,8 @@ cron.schedule('* * * * *', async () => {
     console.log('🔄 Checking matches...');
 
     try {
-        let games = USE_MOCK 
-            ? mockMatchData.games 
+        let games = USE_MOCK
+            ? mockMatchData.games
             : (await axios.get('http://185.173.104.222:3000/games', { timeout: 30000 })).data.games || [];
 
         if (games.length) {
