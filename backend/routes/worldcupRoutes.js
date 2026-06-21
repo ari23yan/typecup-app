@@ -9,5 +9,6 @@ router.post('/bet', authenticateToken, worldcupController.placeBet);
 router.get('/my-bets', authenticateToken, worldcupController.getMyBets);
 router.get('/wallet', authenticateToken, worldcupController.getWallet);
 router.get('/live-matches', authenticateToken, worldcupController.getLiveMatches);
+router.get('/leaderboard', authenticateToken, worldcupController.getLeaderboard);
 
 module.exports = router;

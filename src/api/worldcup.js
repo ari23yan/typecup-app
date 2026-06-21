@@ -67,3 +67,15 @@ export const getLiveMatches = async () => {
         return { success: false, data: [] };
     }
 };
+
+export const getLeaderboard = async () => {
+    try {
+        const response = await apiClient.get(`/worldcup/leaderboard`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        return response;
+    } catch (error) {
+        console.error('Error fetching user bets:', error);
+        return { success: false, data: [] };
+    }
+};

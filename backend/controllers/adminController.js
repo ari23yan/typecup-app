@@ -457,8 +457,6 @@ exports.getStats = async (req, res) => {
         );
     }
 };
-// آپدیت چند ضریب به صورت همزمان
-// آپدیت ضریب یک بازی به صورت تکی
 // آپدیت ضریب یک بازی به صورت تکی
 exports.updateOdd = async (req, res) => {
     try {

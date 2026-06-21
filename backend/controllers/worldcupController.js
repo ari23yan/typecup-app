@@ -491,7 +491,6 @@ exports.getWallet = async (req, res) => {
         );
     }
 };
-
 exports.getLiveMatches = async (req, res) => {
     try {
         const now = new Date();
@@ -668,6 +667,173 @@ exports.getLiveMatches = async (req, res) => {
 
         return res.status(500).json(
             new ApiResponse(500, MESSAGES.ERROR.DEFAULT, null, false)
+        );
+    }
+};
+exports.getLeaderboard = async (req, res) => {
+    try {
+        const leaderboardData = await Bet.aggregate([
+            {
+                $match: {
+                    status: { $in: ['WON', 'LOST'] }
+                }
+            },
+            {
+                $group: {
+                    _id: "$userId",
+                    totalBets: { $sum: 1 },
+                    wonBets: {
+                        $sum: {
+                            $cond: [{ $eq: ["$status", "WON"] }, 1, 0]
+                        }
+                    },
+                    lostBets: {
+                        $sum: {
+                            $cond: [{ $eq: ["$status", "LOST"] }, 1, 0]
+                        }
+                    },
+                    totalStake: { $sum: "$stake" },
+                    totalPayout: {
+                        $sum: {
+                            $cond: [
+                                { $eq: ["$status", "WON"] },
+                                "$payout",
+                                0
+                            ]
+                        }
+                    },
+                    netProfit: {
+                        $sum: {
+                            $cond: [
+                                { $eq: ["$status", "WON"] },
+                                { $subtract: ["$payout", "$stake"] },
+                                0
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                $addFields: {
+                    winRate: {
+                        $cond: [
+                            { $eq: ["$totalBets", 0] },
+                            0,
+                            { $multiply: [{ $divide: ["$wonBets", "$totalBets"] }, 100] }
+                        ]
+                    }
+                }
+            },
+            {
+                $sort: {
+                    wonBets: -1,
+                    netProfit: -1,
+                    winRate: -1
+                }
+            },
+            {
+                $limit: 10
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    let: { userId: "$_id" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $eq: [
+                                        "$_id",
+                                        { $toObjectId: "$$userId" }
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    as: "user"
+                }
+            },
+            {
+                $unwind: {
+                    path: "$user",
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    userId: "$_id",
+                    // اطلاعات کاربر
+                    name: "$user.name",
+                    userName: "$user.userName",
+                    lastName: "$user.lastName",
+                    phone: "$user.phone",
+                    email: "$user.email",
+                    // اضافه کردن فیلد fullName برای نمایش ترکیبی
+                    fullName: {
+                        $trim: {
+                            input: {
+                                $concat: [
+                                    { $ifNull: ["$user.name", ""] },
+                                    " ",
+                                    { $ifNull: ["$user.lastName", ""] }
+                                ]
+                            }
+                        }
+                    },
+                    // نمایش نام نمایشی (اولویت با userName، سپس name)
+                    displayName: {
+                        $ifNull: [
+                            "$user.userName",
+                            { $ifNull: ["$user.name", "کاربر"] }
+                        ]
+                    },
+                    // امتیاز (می‌توانید بر اساس معیارهای خود محاسبه کنید)
+                    score: {
+                        $add: [
+                            { $multiply: ["$wonBets", 10] },
+                            { $multiply: ["$totalBets", 1] },
+                            { $divide: ["$netProfit", 1000] }
+                        ]
+                    },
+                    stats: {
+                        totalBets: "$totalBets",
+                        wonBets: "$wonBets",
+                        lostBets: "$lostBets",
+                        winRate: { $round: ["$winRate", 2] },
+                        totalStake: "$totalStake",
+                        totalPayout: "$totalPayout",
+                        netProfit: "$netProfit"
+                    }
+                }
+            }
+        ]);
+
+        const rankedLeaderboard = leaderboardData.map((user, index) => ({
+            rank: index + 1,
+            ...user
+        }));
+
+        return res.json(
+            new ApiResponse(
+                200,
+                MESSAGES.SUCCESS.DEFAULT,
+                {
+                    leaderboard: rankedLeaderboard
+                },
+                true
+            )
+        );
+
+    } catch (error) {
+        console.error('Error in getLeaderboardByWins:', error);
+        return res.status(500).json(
+            new ApiResponse(
+                500,
+                MESSAGES.ERROR.DEFAULT,
+                null,
+                false
+            )
         );
     }
 };
