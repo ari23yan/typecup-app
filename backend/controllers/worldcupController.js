@@ -672,7 +672,8 @@ exports.getLiveMatches = async (req, res) => {
 };
 exports.getLeaderboard = async (req, res) => {
     try {
-        const leaderboardData = await Bet.aggregate([
+        // مرحله 1: دریافت آمار شرط‌ها به تفکیک کاربر
+        const betsStats = await Bet.aggregate([
             {
                 $match: {
                     status: { $in: ['WON', 'LOST'] }
@@ -733,104 +734,92 @@ exports.getLeaderboard = async (req, res) => {
             },
             {
                 $limit: 10
-            },
-            {
-                $lookup: {
-                    from: "users",
-                    let: { userId: "$_id" },
-                    pipeline: [
-                        {
-                            $match: {
-                                $expr: {
-                                    $eq: [
-                                        "$_id",
-                                        { $toObjectId: "$$userId" }
-                                    ]
-                                }
-                            }
-                        }
-                    ],
-                    as: "user"
-                }
-            },
-            {
-                $unwind: {
-                    path: "$user",
-                    preserveNullAndEmptyArrays: true
-                }
-            },
-            {
-                $project: {
-                    _id: 0,
-                    userId: "$_id",
-                    // اطلاعات کاربر
-                    name: "$user.name",
-                    userName: "$user.userName",
-                    lastName: "$user.lastName",
-                    phone: "$user.phone",
-                    email: "$user.email",
-                    // اضافه کردن فیلد fullName برای نمایش ترکیبی
-                    fullName: {
-                        $trim: {
-                            input: {
-                                $concat: [
-                                    { $ifNull: ["$user.name", ""] },
-                                    " ",
-                                    { $ifNull: ["$user.lastName", ""] }
-                                ]
-                            }
-                        }
-                    },
-                    // نمایش نام نمایشی (اولویت با userName، سپس name)
-                    displayName: {
-                        $ifNull: [
-                            "$user.userName",
-                            { $ifNull: ["$user.name", "کاربر"] }
-                        ]
-                    },
-                    // امتیاز (می‌توانید بر اساس معیارهای خود محاسبه کنید)
-                    score: {
-                        $add: [
-                            { $multiply: ["$wonBets", 10] },
-                            { $multiply: ["$totalBets", 1] },
-                            { $divide: ["$netProfit", 1000] }
-                        ]
-                    },
-                    stats: {
-                        totalBets: "$totalBets",
-                        wonBets: "$wonBets",
-                        lostBets: "$lostBets",
-                        winRate: { $round: ["$winRate", 2] },
-                        totalStake: "$totalStake",
-                        totalPayout: "$totalPayout",
-                        netProfit: "$netProfit"
-                    }
-                }
             }
         ]);
 
-        const rankedLeaderboard = leaderboardData.map((user, index) => ({
-            rank: index + 1,
-            ...user
-        }));
+        // اگر هیچ شرطی وجود نداشت
+        if (betsStats.length === 0) {
+            return res.json(
+                new ApiResponse(
+                    200,
+                    MESSAGES.SUCCESS.DEFAULT,
+                    {
+                        leaderboard: []
+                    },
+                    true
+                )
+            );
+        }
+
+        // مرحله 2: استخراج userIdها
+        const userIds = betsStats.map(item => {
+            // اگر userId از نوع ObjectId باشد یا String
+            if (item._id && typeof item._id === 'object') {
+                return item._id.toString();
+            }
+            return item._id;
+        });
+
+        // مرحله 3: دریافت اطلاعات کاربران
+        const users = await User.find({
+            _id: { $in: userIds.map(id => mongoose.Types.ObjectId(id)) }
+        }).lean();
+
+        // مرحله 4: ترکیب داده‌ها
+        const leaderboardData = betsStats.map((betStat, index) => {
+            // پیدا کردن کاربر متناظر
+            let user = null;
+
+            // جستجو با ObjectId
+            if (betStat._id && typeof betStat._id === 'object') {
+                user = users.find(u => u._id.toString() === betStat._id.toString());
+            } else {
+                // جستجو با String
+                user = users.find(u => u._id.toString() === betStat._id.toString());
+            }
+
+            return {
+                rank: index + 1,
+                userId: betStat._id,
+                name: user?.name || null,
+                userName: user?.userName || null,
+                lastName: user?.lastName || null,
+                phone: user?.phone || null,
+                email: user?.email || null,
+                fullName: user ? `${user.name || ''} ${user.lastName || ''}`.trim() : 'کاربر ناشناس',
+                displayName: user?.userName || user?.name || 'کاربر',
+                score: Math.round((betStat.wonBets * 10) + (betStat.totalBets * 1) + (betStat.netProfit / 1000)),
+                stats: {
+                    totalBets: betStat.totalBets,
+                    wonBets: betStat.wonBets,
+                    lostBets: betStat.lostBets,
+                    winRate: parseFloat(betStat.winRate.toFixed(2)),
+                    totalStake: betStat.totalStake,
+                    totalPayout: betStat.totalPayout,
+                    netProfit: betStat.netProfit
+                }
+            };
+        });
 
         return res.json(
             new ApiResponse(
                 200,
                 MESSAGES.SUCCESS.DEFAULT,
                 {
-                    leaderboard: rankedLeaderboard
+                    leaderboard: leaderboardData
                 },
                 true
             )
         );
 
     } catch (error) {
-        console.error('Error in getLeaderboardByWins:', error);
+        console.error('Error in getLeaderboard:', error);
+        console.error('Error stack:', error.stack);
+
         return res.status(500).json(
             new ApiResponse(
                 500,
-                MESSAGES.ERROR.DEFAULT,
+                `خطا در دریافت جدول امتیازات: ${error.message}`,
                 null,
                 false
             )
