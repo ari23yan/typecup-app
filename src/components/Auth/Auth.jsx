@@ -10,7 +10,12 @@ import {
 } from "../../api/auth";
 
 import OtpInput from "../Otp/OtpInput";
-import { FaKey, FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaKey, FaEye, FaEyeSlash, FaSyncAlt } from "react-icons/fa";
+import {
+    loadCaptchaEnginge,
+    LoadCanvasTemplate,
+    validateCaptcha,
+} from "react-simple-captcha";
 
 export default function AuthModal({
     onClose,
@@ -34,6 +39,9 @@ export default function AuthModal({
     const [showRegisterPassword, setShowRegisterPassword] = useState(savedState.showRegisterPassword);
     const [showResetPassword, setShowResetPassword] = useState(savedState.showResetPassword);
 
+    // Captcha state
+    const [captchaValue, setCaptchaValue] = useState("");
+
     // loading states
     const [checkPhoneLoading, setCheckPhoneLoading] = useState(false);
     const [loginLoading, setLoginLoading] = useState(false);
@@ -49,6 +57,7 @@ export default function AuthModal({
     const registerEmailRef = useRef(null);
     const registerPasswordRef = useRef(null);
     const resetPasswordRef = useRef(null);
+    const captchaInputRef = useRef(null);
 
     useEffect(() => {
         onSaveState({
@@ -92,6 +101,8 @@ export default function AuthModal({
             registerNameRef.current.focus();
         } else if (step === "resetPassword" && resetPasswordRef.current) {
             resetPasswordRef.current.focus();
+        } else if (step === "captcha" && captchaInputRef.current) {
+            captchaInputRef.current.focus();
         }
     }, [step]);
 
@@ -117,6 +128,14 @@ export default function AuthModal({
             if (timer) clearTimeout(timer);
         };
     }, [step, timeLeft]);
+
+    // Load captcha when step changes to captcha
+    useEffect(() => {
+        if (step === "captcha") {
+            loadCaptchaEnginge(5, 'white', 'black', 'numbers');
+            setCaptchaValue("");
+        }
+    }, [step]);
 
     const handleKeyPress = (e, handler, loading) => {
         if (e.key === "Enter" && !loading) {
@@ -160,6 +179,14 @@ export default function AuthModal({
 
         if (resendLoading) return;
 
+        // Check captcha for reset password flow
+        if (otpType === "reset") {
+            if (!validateCaptcha(captchaValue)) {
+                toast.error("کد کپچا اشتباه است");
+                return;
+            }
+        }
+
         if (!canResend && timeLeft > 0) {
             toast.error(`لطفاً ${timeLeft} ثانیه صبر کنید`);
             return;
@@ -176,6 +203,8 @@ export default function AuthModal({
                 setTimeLeft(60);
                 setCanResend(false);
                 setOtp(["", "", "", ""]);
+                setStep("otp");
+                setCaptchaValue("");
             } else {
                 toast.error(data.message);
             }
@@ -202,6 +231,7 @@ export default function AuthModal({
             if (data.success) {
                 toast.success("رمز عبور با موفقیت تغییر کرد");
                 setStep("login");
+                setPassword("");
             } else {
                 toast.error(data.message);
             }
@@ -271,7 +301,7 @@ export default function AuthModal({
             toast.error("نام باید فارسی و کمتر از 20 کاراکتر باشد");
             return;
         }
-        
+
         if (!validateUsername(userName)) {
             toast.error("نام کاربری باید انگلیسی، بدون فاصله و کمتر از ۲۰ کاراکتر باشد");
             return;
@@ -335,6 +365,62 @@ export default function AuthModal({
         return password.length >= 8;
     }
 
+    const handleForgotPassword = () => {
+        if (!validatePhoneNumber(phone)) {
+            toast.error("شماره موبایل معتبر نیست");
+            return;
+        }
+        setOtpType("reset");
+        setStep("captcha");
+    };
+
+    const handleResetCaptcha = () => {
+        loadCaptchaEnginge(5, 'white', 'black', 'numbers');
+        setCaptchaValue("");
+        toast.success("کپچا بازنشانی شد");
+    };
+
+    const renderCaptchaStep = () => (
+        <div className="modal-form">
+            <div className="captcha-box" style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
+                <LoadCanvasTemplate />
+                <button
+                    type="button"
+                    className="captcha-reset-btn"
+                    onClick={handleResetCaptcha}
+                    title="بازنشانی کپچا"
+                    style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '1.2rem',
+                        color: '#666',
+                        padding: '8px'
+                    }}
+                >
+                    <FaSyncAlt />
+                </button>
+            </div>
+
+            <input
+                ref={captchaInputRef}
+                className="modal-input"
+                placeholder="کد کپچا را وارد کنید"
+                value={captchaValue}
+                onChange={(e) => setCaptchaValue(e.target.value)}
+                onKeyPress={(e) => handleKeyPress(e, handleSendOtp, resendLoading)}
+            />
+
+            <button
+                className="modal-btn"
+                onClick={handleSendOtp}
+                disabled={resendLoading}
+            >
+                {resendLoading ? <span className="btn-loader"></span> : "ارسال کد تایید"}
+            </button>
+        </div>
+    );
+
     return (
         <div dir="rtl" className="modal-overlay" onClick={onClose}>
             <div className="modal-box" onClick={(e) => e.stopPropagation()}>
@@ -374,9 +460,7 @@ export default function AuthModal({
 
                     {step === "login" && (
                         <div className="modal-form">
-
                             <div className="password-wrapper">
-
                                 <input
                                     ref={loginPasswordRef}
                                     className="modal-input password-input"
@@ -388,7 +472,6 @@ export default function AuthModal({
                                         handleKeyPress(e, handleLogin, loginLoading)
                                     }
                                 />
-
                                 <button
                                     type="button"
                                     className="password-toggle"
@@ -396,8 +479,16 @@ export default function AuthModal({
                                 >
                                     {showPassword ? <FaEyeSlash /> : <FaEye />}
                                 </button>
-
                             </div>
+
+                            <a
+                                className="modal-link forgot-password-btn"
+                                onClick={handleForgotPassword}
+                                type="button"
+                            >
+                                <FaKey className="forget-pass-icon" />
+                                تغییر رمز عبور
+                            </a>
 
                             <button
                                 className="modal-btn"
@@ -406,9 +497,10 @@ export default function AuthModal({
                             >
                                 {loginLoading ? <span className="btn-loader"></span> : "ورود"}
                             </button>
-
                         </div>
                     )}
+
+                    {step === "captcha" && renderCaptchaStep()}
 
                     {step === "otp" && (
                         <div className="modal-form">
@@ -439,7 +531,11 @@ export default function AuthModal({
                                 ) : (
                                     <button
                                         className="modal-link resend-btn"
-                                        onClick={handleSendOtp}
+                                        onClick={() => {
+                                            setOtpType("reset");
+                                            setStep("captcha");
+                                            setCaptchaValue("");
+                                        }}
                                         disabled={resendLoading}
                                     >
                                         {resendLoading ? <span className="btn-loader"></span> : "ارسال مجدد کد"}
@@ -497,7 +593,7 @@ export default function AuthModal({
                                     type={showRegisterPassword ? "text" : "password"}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    onKeyPress={(e) => handleKeyPress(e, handleRegister)}
+                                    onKeyPress={(e) => handleKeyPress(e, handleRegister, registerLoading)}
                                 />
                                 <button
                                     type="button"
