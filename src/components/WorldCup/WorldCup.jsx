@@ -11,7 +11,7 @@ import "react-loading-skeleton/dist/skeleton.css";
 import jalaali from 'jalaali-js';
 import { DateTime } from "luxon";
 
-import { getUserWallet, getUserBets, getMatches, placeBet, getLiveMatches } from "../../api/worldcup";
+import { getUserWallet, getUserBets, getMatches, placeBet, getLiveMatches, getLeaderboard } from "../../api/worldcup";
 
 export default function WorldCup() {
     const navigate = useNavigate();
@@ -39,6 +39,22 @@ export default function WorldCup() {
     const [liveMatches, setLiveMatches] = useState([]);
     const [loadingLive, setLoadingLive] = useState(false);
 
+    const [leaderboard, setLeaderboard] = useState([]);
+    const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
+
+    const fetchLeaderboard = async () => {
+        setLoadingLeaderboard(true);
+        try {
+            const result = await getLeaderboard();
+            if (result.success) {
+                setLeaderboard(result.data.leaderboard);
+            }
+        } catch (error) {
+            console.error("Error fetching leaderboard:", error);
+        } finally {
+            setLoadingLeaderboard(false);
+        }
+    };
 
     // تابع دریافت بازی‌های زنده
     const fetchLiveMatches = async () => {
@@ -176,6 +192,7 @@ export default function WorldCup() {
         fetchMyBets();
         fetchWallet();
         fetchLiveMatches();
+        fetchLeaderboard();
         const interval = setInterval(fetchLiveMatches, 30000);
         return () => clearInterval(interval);
 
@@ -547,6 +564,60 @@ export default function WorldCup() {
                                     </div>
                                 )}
 
+                            </div>
+                        </div>
+                        <div className="game-card main-card wordcup-leaderboard-card">
+                            <div className="card-header">
+                                <h3>لیدربرد</h3>
+                                <div className="header-line"></div>
+                            </div>
+                            <div className="card-content wordcup-leaderboard-content">
+                                {loadingLeaderboard ? (
+                                    <div className="wordcup-leaderboard-loading">
+                                        <FaSpinner className="spinning" />
+                                        <span>در حال بارگذاری...</span>
+                                    </div>
+                                ) : leaderboard.length === 0 ? (
+                                    <div className="no-wordcup-leaderboard">
+                                        <FaTrophy className="no-wordcup-leaderboard-icon" />
+                                        <p>هنوز رتبه‌بندی ثبت نشده است</p>
+                                    </div>
+                                ) : (
+                                    <div className="wordcup-leaderboard-list">
+                                        {leaderboard.map((player) => (
+                                            <div
+                                                key={player.userId}
+                                                className={`wordcup-leaderboard-item rank`}
+                                            >
+                                                <div className="wordcup-leaderboard-rank">
+                                                    <span className="rank-number">{player.rank}</span>
+                                                </div>
+
+                                                <div className="wordcup-leaderboard-player-info">
+                                                    <div className="player-name-wrapper">
+                                                        <span className="player-name">
+                                                            {player.fullName || player.displayName || player.name || 'کاربر'}
+                                                        </span>
+                                                        <span className="player-username">@{player.userName || 'کاربر'}</span>
+                                                    </div>
+                                                    <div className="player-stats-mini">
+                                                        <span className="stat-badge">
+                                                            برد: {player.stats?.wonBets || 0}
+                                                        </span>
+                                                        <span className="stat-badge">
+                                                            باخت: {player.stats?.lostBets || 0}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="wordcup-leaderboard-score">
+                                                    <span className="score-number">{player.score || 0}</span>
+                                                    <span className="score-label">امتیاز</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
