@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { FaArrowLeft, FaSpinner, FaTimes, FaTrophy, FaClock, FaTimesCircle, FaCheckCircle, FaFutbol } from "react-icons/fa";
@@ -103,17 +102,22 @@ export default function WorldCup() {
     };
 
     function toPersianDate(utcDate) {
-        const iranTime = DateTime
-            .fromISO(utcDate, { zone: "utc" })
-            .setZone("Asia/Tehran");
+        if (!utcDate) return 'تاریخ نامشخص';
+        try {
+            const iranTime = DateTime
+                .fromISO(utcDate, { zone: "utc" })
+                .setZone("Asia/Tehran");
 
-        const { jy, jm, jd } = jalaali.toJalaali(
-            iranTime.year,
-            iranTime.month,
-            iranTime.day
-        );
+            const { jy, jm, jd } = jalaali.toJalaali(
+                iranTime.year,
+                iranTime.month,
+                iranTime.day
+            );
 
-        return `${jy}/${String(jm).padStart(2, "0")}/${String(jd).padStart(2, "0")} ${iranTime.toFormat("HH:mm")}`;
+            return `${jy}/${String(jm).padStart(2, "0")}/${String(jd).padStart(2, "0")} ${iranTime.toFormat("HH:mm")}`;
+        } catch (error) {
+            return 'تاریخ نامشخص';
+        }
     }
 
     // Usage example:
@@ -204,7 +208,16 @@ export default function WorldCup() {
             try {
                 const result = await getMatches();
                 if (result.success) {
-                    setMatches(result.data);
+                    // Filter out matches with invalid data
+                    const validMatches = result.data.filter(match =>
+                        match.homeTeam &&
+                        match.awayTeam &&
+                        match.homeTeam.teamId !== "0" &&
+                        match.awayTeam.teamId !== "0" &&
+                        match.odds &&
+                        Object.keys(match.odds).length > 0
+                    );
+                    setMatches(validMatches);
                 }
             } catch (error) {
                 console.log(error);
@@ -217,6 +230,11 @@ export default function WorldCup() {
     // Handle opening bet modal
     const handleOpenBetModal = (match, e) => {
         e.stopPropagation(); // Prevent navigating to match details
+        // Validate match data before opening modal
+        if (!match?.odds || !match?.homeTeam?.name_fa || !match?.awayTeam?.name_fa) {
+            toast.error("اطلاعات این مسابقه کامل نیست");
+            return;
+        }
         setSelectedMatch(match);
         setSelectedSelection(null);
         setBetAmount("");
@@ -233,12 +251,13 @@ export default function WorldCup() {
 
     // Handle selection of HOME/DRAW/AWAY
     const handleSelectSelection = (selection, odd) => {
+        if (!selectedMatch) return;
         setSelectedSelection({
             type: selection,
-            odd: odd,
-            label: selection === 'HOME' ? selectedMatch.homeTeam.name_fa :
+            odd: odd || 0,
+            label: selection === 'HOME' ? selectedMatch.homeTeam?.name_fa || 'میزبان' :
                 selection === 'DRAW' ? 'مساوی' :
-                    selectedMatch.awayTeam.name_fa
+                    selectedMatch.awayTeam?.name_fa || 'مهمان'
         });
     };
 
@@ -253,7 +272,7 @@ export default function WorldCup() {
 
     // Calculate possible win
     const calculatePossibleWin = () => {
-        if (!betAmount || !selectedSelection) return 0;
+        if (!betAmount || !selectedSelection || !selectedSelection.odd) return 0;
         return parseInt(betAmount) * selectedSelection.odd;
     };
 
@@ -322,13 +341,21 @@ export default function WorldCup() {
     }
     // From URL like "https://flagcdn.com/w80/ca.png" or "/flags/ca.png"
     const getCountryCode = (flagUrl) => {
-        // Extract filename without extension
-        const fileName = flagUrl.split('/').pop(); // gets "ca.png"
-        const countryCode = fileName.split('.')[0]; // gets "ca"
-        return countryCode.toLowerCase();
+        if (!flagUrl) return 'unknown'; // Return 'unknown' for null/undefined
+        try {
+            // Extract filename without extension
+            const fileName = flagUrl.split('/').pop(); // gets "ca.png"
+            if (!fileName) return 'unknown';
+
+            const countryCode = fileName.split('.')[0]; // gets "ca"
+            return countryCode.toLowerCase();
+        } catch (error) {
+            return 'unknown';
+        }
     };
 
     const getSelectedTeamName = (bet) => {
+        if (!bet) return 'نامشخص';
         if (bet.selection === 'HOME') {
             return bet.homeTeam?.name_fa || 'میزبان';
         } else if (bet.selection === 'AWAY') {
@@ -337,6 +364,20 @@ export default function WorldCup() {
             return 'مساوی';
         }
     };
+
+    // Helper function to safely get odds
+    const getSafeOdds = (match, type) => {
+        if (!match?.odds) return 0;
+        return match.odds[type] || 0;
+    };
+
+    // Filter valid matches for display
+    const validMatches = matches.filter(match =>
+        match.homeTeam?.name_fa &&
+        match.awayTeam?.name_fa &&
+        match.homeTeam?.teamId !== "0" &&
+        match.awayTeam?.teamId !== "0"
+    );
 
     return (
         <div className="worldcup-page">
@@ -361,7 +402,7 @@ export default function WorldCup() {
                             <span className="wallet-title">کیف پول</span>
                             <div className="wallet-balance">
                                 <strong>
-                                    {(wallet.balance)?.toLocaleString("fa-IR")}
+                                    {(wallet.balance)?.toLocaleString("fa-IR") || '۰'}
                                 </strong>
                                 <span>تومان</span>
                             </div>
@@ -378,62 +419,69 @@ export default function WorldCup() {
                         </div>
                         <div className="card-content">
                             <div className="matches-list">
-                                {matches.map((match) => (
-                                    <div
-                                        key={match.matchId}
-                                        className="match-item"
-                                        onClick={(e) => handleOpenBetModal(match, e)}
-                                    >
-                                        <div className="match-date" style={{ color: '#FFFF' }}>
-                                            {toPersianDate(match.kickoffUtc)}
-                                        </div>
-
-                                        <div className="match-teams">
-                                            <div className="team home-team">
-                                                {/* <img
-                                                    src={match.homeTeam.flag}
-                                                    alt={match.homeTeam.name_fa}
-                                                    className="team-flag"
-                                                /> */}
-                                                <span className={`fi fi-${getCountryCode(match.homeTeam.flag)}`}></span>
-
-
-                                                <span className="team-name white-color" >{match.homeTeam.name_fa}</span>
-                                            </div>
-
-                                            <div className="match-vs">VS</div>
-
-                                            <div className="team away-team" >
-                                                <span className={`fi fi-${getCountryCode(match.awayTeam.flag)}`}></span>
-                                                <span className="team-name white-color" >{match.awayTeam.name_fa}</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="match-odds">
-                                            <div className="odd-item">
-                                                <span className="odd-label">برد {match.homeTeam.name_fa}</span>
-                                                <span className="odd-value">{match.odds.homeWin.toFixed(2)}</span>
-                                            </div>
-                                            <div className="odd-item">
-                                                <span className="odd-label">مساوی</span>
-                                                <span className="odd-value">{match.odds.draw.toFixed(2)}</span>
-                                            </div>
-                                            <div className="odd-item">
-                                                <span className="odd-label">برد {match.awayTeam.name_fa}</span>
-                                                <span className="odd-value">{match.odds.awayWin.toFixed(2)}</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="match-prediction-btn">
-                                            <button
-                                                className="predict-btn"
-                                                onClick={(e) => handleOpenBetModal(match, e)}
-                                            >
-                                                پیش‌بینی
-                                            </button>
-                                        </div>
+                                {validMatches.length === 0 ? (
+                                    <div className="no-matches">
+                                        <p>هیچ مسابقه‌ای برای نمایش وجود ندارد</p>
                                     </div>
-                                ))}
+                                ) : (
+                                    validMatches.map((match) => (
+                                        <div
+                                            key={match.matchId}
+                                            className="match-item"
+                                            onClick={(e) => handleOpenBetModal(match, e)}
+                                        >
+                                            <div className="match-date" style={{ color: '#FFFF' }}>
+                                                {toPersianDate(match.kickoffUtc)}
+                                            </div>
+
+                                            <div className="match-teams">
+                                                <div className="team home-team">
+                                                    {getCountryCode(match.homeTeam?.flag) === 'unknown' ? (
+                                                        <span className="fi fi-unknown"></span>
+                                                    ) : (
+                                                        <span className={`fi fi-${getCountryCode(match.homeTeam?.flag)}`}></span>
+                                                    )}
+                                                    <span className="team-name white-color">{match.homeTeam?.name_fa || 'میزبان'}</span>
+                                                </div>
+
+                                                <div className="match-vs">VS</div>
+
+                                                <div className="team away-team">
+                                                    {getCountryCode(match.awayTeam?.flag) === 'unknown' ? (
+                                                        <span className="fi fi-unknown"></span>
+                                                    ) : (
+                                                        <span className={`fi fi-${getCountryCode(match.awayTeam?.flag)}`}></span>
+                                                    )}
+                                                    <span className="team-name white-color">{match.awayTeam?.name_fa || 'مهمان'}</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="match-odds">
+                                                <div className="odd-item">
+                                                    <span className="odd-label">برد {match.homeTeam?.name_fa || 'میزبان'}</span>
+                                                    <span className="odd-value">{getSafeOdds(match, 'homeWin').toFixed(2)}</span>
+                                                </div>
+                                                <div className="odd-item">
+                                                    <span className="odd-label">مساوی</span>
+                                                    <span className="odd-value">{getSafeOdds(match, 'draw').toFixed(2)}</span>
+                                                </div>
+                                                <div className="odd-item">
+                                                    <span className="odd-label">برد {match.awayTeam?.name_fa || 'مهمان'}</span>
+                                                    <span className="odd-value">{getSafeOdds(match, 'awayWin').toFixed(2)}</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="match-prediction-btn">
+                                                <button
+                                                    className="predict-btn"
+                                                    onClick={(e) => handleOpenBetModal(match, e)}
+                                                >
+                                                    پیش‌بینی
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </div>
                     </div>
@@ -462,9 +510,9 @@ export default function WorldCup() {
                                                 <div key={bet.betId} className="my-bet-item">
                                                     <div className="bet-match-info">
                                                         <div className="bet-teams">
-                                                            <span className="home-team-name">{bet.homeTeam?.name_fa}</span>
+                                                            <span className="home-team-name">{bet.homeTeam?.name_fa || 'میزبان'}</span>
                                                             <span className="vs-icon">VS</span>
-                                                            <span className="away-team-name">{bet.awayTeam?.name_fa}</span>
+                                                            <span className="away-team-name">{bet.awayTeam?.name_fa || 'مهمان'}</span>
                                                         </div>
                                                         <div className="bet-selection">
                                                             انتخاب: <strong>{getSelectedTeamName(bet)}</strong>
@@ -475,19 +523,19 @@ export default function WorldCup() {
                                                         <div className="bet-detail">
                                                             <span className="detail-label">تاریخ ثبت:</span>
                                                             <span className="detail-value">
-                                                                {new Date(bet.createdAt).toLocaleDateString("fa-IR")}
+                                                                {bet.createdAt ? new Date(bet.createdAt).toLocaleDateString("fa-IR") : 'نامشخص'}
                                                             </span>
                                                         </div>
                                                         <div className="bet-detail">
                                                             <span className="detail-label">مبلغ پیشبینی:</span>
                                                             <span className="detail-value">
-                                                                {bet.stake?.toLocaleString("fa-IR")} تومان
+                                                                {bet.stake?.toLocaleString("fa-IR") || '۰'} تومان
                                                             </span>
                                                         </div>
                                                         <div className="bet-detail">
                                                             <span className="detail-label">برد احتمالی:</span>
                                                             <span className="detail-value">
-                                                                {bet.possibleWin?.toLocaleString("fa-IR")} تومان
+                                                                {bet.possibleWin?.toLocaleString("fa-IR") || '۰'} تومان
                                                             </span>
                                                         </div>
                                                         <div className={`bet-status-badge ${status.className}`}>
@@ -536,27 +584,34 @@ export default function WorldCup() {
                                                         <span>زنده</span>
                                                     </div>
                                                     <div className="match-time-small">
-                                                        <span className="timer" >{match.matchTime}</span>
+                                                        <span className="timer">{match.matchTime || '۰'}</span>
                                                         <FaClock className="icon" />
-                                                        {/* <span>{match.persianDate?.replace(/-/g, "/")}</span> */}
                                                     </div>
                                                 </div>
 
                                                 <div className="live-score">
                                                     <div className="live-team">
-                                                        <span className={`fi fi-${getCountryCode(match.homeTeam.flag)}`}></span>
-                                                        <span className="live-team-name">{match.homeTeam.name_fa}</span>
+                                                        {getCountryCode(match.homeTeam?.flag) === 'unknown' ? (
+                                                            <span className="fi fi-unknown"></span>
+                                                        ) : (
+                                                            <span className={`fi fi-${getCountryCode(match.homeTeam?.flag)}`}></span>
+                                                        )}
+                                                        <span className="live-team-name">{match.homeTeam?.name_fa || 'میزبان'}</span>
                                                         <span className="live-team-score">
-                                                            {match.homeScore !== undefined ? match.homeScore : "0"}
+                                                            {match.homeScore !== undefined ? match.homeScore : "۰"}
                                                         </span>
                                                     </div>
                                                     <div className="live-vs">VS</div>
                                                     <div className="live-team">
                                                         <span className="live-team-score">
-                                                            {match.awayScore !== undefined ? match.awayScore : "0"}
+                                                            {match.awayScore !== undefined ? match.awayScore : "۰"}
                                                         </span>
-                                                        <span className="live-team-name">{match.awayTeam.name_fa}</span>
-                                                        <span className={`fi fi-${getCountryCode(match.awayTeam.flag)}`}></span>
+                                                        <span className="live-team-name">{match.awayTeam?.name_fa || 'مهمان'}</span>
+                                                        {getCountryCode(match.awayTeam?.flag) === 'unknown' ? (
+                                                            <span className="fi fi-unknown"></span>
+                                                        ) : (
+                                                            <span className={`fi fi-${getCountryCode(match.awayTeam?.flag)}`}></span>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -590,7 +645,7 @@ export default function WorldCup() {
                                                 className={`wordcup-leaderboard-item rank`}
                                             >
                                                 <div className="wordcup-leaderboard-rank">
-                                                    <span className="rank-number">{player.rank}</span>
+                                                    <span className="rank-number">{player.rank || '۰'}</span>
                                                 </div>
 
                                                 <div className="wordcup-leaderboard-player-info">
@@ -646,12 +701,12 @@ export default function WorldCup() {
                             {/* Match Info */}
                             <div className="modal-match-info">
                                 <div className="modal-teams">
-                                    <span>{selectedMatch.homeTeam.name_fa}</span>
+                                    <span>{selectedMatch.homeTeam?.name_fa || 'میزبان'}</span>
                                     <span className="vs">VS</span>
-                                    <span>{selectedMatch.awayTeam.name_fa}</span>
+                                    <span>{selectedMatch.awayTeam?.name_fa || 'مهمان'}</span>
                                 </div>
                                 <div className="modal-date">
-                                    {selectedMatch.persianDate?.replace(/-/g, "/")}
+                                    {selectedMatch.persianDate?.replace(/-/g, "/") || toPersianDate(selectedMatch.kickoffUtc)}
                                 </div>
                             </div>
 
@@ -661,24 +716,27 @@ export default function WorldCup() {
                                 <div className="selection-buttons">
                                     <button
                                         className={`selection-btn ${selectedSelection?.type === 'HOME' ? 'active' : ''}`}
-                                        onClick={() => handleSelectSelection('HOME', selectedMatch.odds.homeWin)}
+                                        onClick={() => handleSelectSelection('HOME', getSafeOdds(selectedMatch, 'homeWin'))}
+                                        disabled={!getSafeOdds(selectedMatch, 'homeWin')}
                                     >
-                                        <span className="selection-label">برد {selectedMatch.homeTeam.name_fa}</span>
-                                        <span className="selection-odd">{selectedMatch.odds.homeWin.toFixed(2)}</span>
+                                        <span className="selection-label">برد {selectedMatch.homeTeam?.name_fa || 'میزبان'}</span>
+                                        <span className="selection-odd">{getSafeOdds(selectedMatch, 'homeWin').toFixed(2)}</span>
                                     </button>
                                     <button
                                         className={`selection-btn ${selectedSelection?.type === 'DRAW' ? 'active' : ''}`}
-                                        onClick={() => handleSelectSelection('DRAW', selectedMatch.odds.draw)}
+                                        onClick={() => handleSelectSelection('DRAW', getSafeOdds(selectedMatch, 'draw'))}
+                                        disabled={!getSafeOdds(selectedMatch, 'draw')}
                                     >
                                         <span className="selection-label">مساوی</span>
-                                        <span className="selection-odd">{selectedMatch.odds.draw.toFixed(2)}</span>
+                                        <span className="selection-odd">{getSafeOdds(selectedMatch, 'draw').toFixed(2)}</span>
                                     </button>
                                     <button
                                         className={`selection-btn ${selectedSelection?.type === 'AWAY' ? 'active' : ''}`}
-                                        onClick={() => handleSelectSelection('AWAY', selectedMatch.odds.awayWin)}
+                                        onClick={() => handleSelectSelection('AWAY', getSafeOdds(selectedMatch, 'awayWin'))}
+                                        disabled={!getSafeOdds(selectedMatch, 'awayWin')}
                                     >
-                                        <span className="selection-label">برد {selectedMatch.awayTeam.name_fa}</span>
-                                        <span className="selection-odd">{selectedMatch.odds.awayWin.toFixed(2)}</span>
+                                        <span className="selection-label">برد {selectedMatch.awayTeam?.name_fa || 'مهمان'}</span>
+                                        <span className="selection-odd">{getSafeOdds(selectedMatch, 'awayWin').toFixed(2)}</span>
                                     </button>
                                 </div>
                             </div>
@@ -716,7 +774,7 @@ export default function WorldCup() {
                                     </div>
                                     <div className="calc-row">
                                         <span>ضریب:</span>
-                                        <span>{selectedSelection.odd.toFixed(2)}</span>
+                                        <span>{selectedSelection.odd?.toFixed(2) || '۰'}</span>
                                     </div>
                                     <div className="calc-row total">
                                         <span>برد احتمالی:</span>
@@ -728,7 +786,7 @@ export default function WorldCup() {
                             {/* Current Balance */}
                             <div className="modal-balance">
                                 <span>موجودی کیف پول:</span>
-                                <strong>{(wallet.balance).toLocaleString("fa-IR")} تومان</strong>
+                                <strong>{(wallet.balance)?.toLocaleString("fa-IR") || '۰'} تومان</strong>
                             </div>
 
                             {/* Error if amount > balance */}

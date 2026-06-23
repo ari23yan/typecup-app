@@ -726,10 +726,16 @@ exports.getLeaderboard = async (req, res) => {
                 }
             },
             {
+                $match: {
+                    totalBets: { $gte: 5 } // حداقل تعداد شرط برای قرارگیری در جدول (اختیاری)
+                }
+            },
+            {
                 $sort: {
-                    wonBets: -1,
-                    netProfit: -1,
-                    winRate: -1
+                    winRate: -1,  // مرتب‌سازی بر اساس نرخ برد (بالاترین اولویت)
+                    wonBets: -1,   // در صورت تساوی، بیشترین برد
+                    totalBets: -1, // در صورت تساوی، بیشترین تعداد شرط
+                    netProfit: -1  // در صورت تساوی، بیشترین سود خالص
                 }
             },
             {
@@ -753,7 +759,6 @@ exports.getLeaderboard = async (req, res) => {
 
         // مرحله 2: استخراج userIdها
         const userIds = betsStats.map(item => {
-            // اگر userId از نوع ObjectId باشد یا String
             if (item._id && typeof item._id === 'object') {
                 return item._id.toString();
             }
@@ -767,14 +772,11 @@ exports.getLeaderboard = async (req, res) => {
 
         // مرحله 4: ترکیب داده‌ها
         const leaderboardData = betsStats.map((betStat, index) => {
-            // پیدا کردن کاربر متناظر
             let user = null;
 
-            // جستجو با ObjectId
             if (betStat._id && typeof betStat._id === 'object') {
                 user = users.find(u => u._id.toString() === betStat._id.toString());
             } else {
-                // جستجو با String
                 user = users.find(u => u._id.toString() === betStat._id.toString());
             }
 
@@ -788,6 +790,7 @@ exports.getLeaderboard = async (req, res) => {
                 email: user?.email || null,
                 fullName: user ? `${user.name || ''} ${user.lastName || ''}`.trim() : 'کاربر ناشناس',
                 displayName: user?.userName || user?.name || 'کاربر',
+                winRate: parseFloat(betStat.winRate.toFixed(2)),
                 score: Math.round((betStat.wonBets * 10) + (betStat.totalBets * 1) + (betStat.netProfit / 1000)),
                 stats: {
                     totalBets: betStat.totalBets,

@@ -1770,3 +1770,27 @@
         font-size: 16px;
     }
 }
+
+.fi-unknown {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: #f0f0f0;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: bold;
+    color: #666;
+}
+
+.placeholder-flag {
+    background: #e0e0e0;
+    border-radius: 50%;
+}
+
+.team-initial {
+    font-size: 12px;
+    font-weight: bold;
+    color: #333;
+}
