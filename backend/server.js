@@ -64,7 +64,7 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/game", gameRoutes);
 app.use("/api/worldcup", worldcupRoutes);
 app.use("/api/admin", adminRoutes);
-// require('./jobs/matchSettlementJob');
+require('./jobs/matchSettlementJob');
 
 const PORT = process.env.PORT || 5000;
 if (process.env.NODE_ENV !== 'production') {
