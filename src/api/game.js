@@ -13,6 +13,10 @@ export const getWordsByWave = async (wave) => {
   return await apiClient.get(`/game/words/${wave}`);
 };
 
+export const getGoldenWordsByWave = async (wave) => {
+  return await apiClient.get(`/game/golden-words/${wave}`);
+};
+
 export const saveGameResult = async (gameData) => {
   const signature = createSignature(
     gameData.score,

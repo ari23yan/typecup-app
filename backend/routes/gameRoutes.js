@@ -4,6 +4,7 @@ const gameController = require('../controllers/gameController');
 const authMiddleware = require('../middlewares/authMiddleware');
 
 router.get('/words/:wave', authMiddleware, gameController.getWordsByWave);
+router.get('/golden-words/:wave', authMiddleware, gameController.getGoldenWordsByWave);
 router.post('/save-result', authMiddleware, gameController.saveGameResult);
 router.get('/leaderboard', gameController.getLeaderboard);
 router.get('/leaderboard/seasons', gameController.getSeasons);

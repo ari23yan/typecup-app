@@ -3,7 +3,7 @@ import useSound from "use-sound";
 import "./Game.css";
 import { useNavigate } from "react-router-dom";
 import { toast, Toaster } from "react-hot-toast";
-import { getWordsByWave, saveGameResult } from "../../api/game";
+import { getWordsByWave, getGoldenWordsByWave, saveGameResult } from "../../api/game";
 
 import {
     FaTrophy,
@@ -47,7 +47,9 @@ export default function Game({ onBack }) {
     const [showWaveText, setShowWaveText] = useState(false);
 
     const [wordBank, setWordBank] = useState([]);
+    const [goldenWordBank, setGoldenWordBank] = useState([]);
     const [savedResult, setSavedResult] = useState(null);
+    const [goldenWordsTyped, setGoldenWordsTyped] = useState(0);
 
     const recentWordsRef = useRef([]);
     const isProcessingRef = useRef(false);
@@ -55,6 +57,7 @@ export default function Game({ onBack }) {
     const endGameTimeoutRef = useRef(null);
     const isEndingRef = useRef(false);
     const [wordsLoaded, setWordsLoaded] = useState(false);
+    const [goldenWordsLoaded, setGoldenWordsLoaded] = useState(false);
     const usedWordsRef = useRef(new Set());
     const failLineRef = useRef(null);
     const wordRefs = useRef({});
@@ -65,6 +68,7 @@ export default function Game({ onBack }) {
     const secureScoreRef = useRef(0);
     const startTimeRef = useRef(null);
     const totalTypedRef = useRef(0);
+    const goldenWordsTypedRef = useRef(0);
 
     const [playClick] = useSound(clickSound, { volume: .6 });
     const [playError] = useSound(errorSound, { volume: .6 });
@@ -116,6 +120,38 @@ export default function Game({ onBack }) {
         }
     }, [started]);
 
+    const loadGoldenWords = async (waveNum, isBackground = false) => {
+        try {
+            if (!isBackground) {
+                // اگر صریحاً درخواست شد (مثلا شروع بازی) لودینگ لازم نیست چون بازی در جریان است
+            }
+            const response = await getGoldenWordsByWave(waveNum);
+            if (response.success && response.data?.length) {
+                const words = response.data.map(w => {
+                    const text = (w.text || w.word)?.normalize("NFKC")
+                        .replace(/\u200c/g, "")
+                        .trim();
+                    return { text, multiplier: w.multiplier || 10 };
+                }).filter(w => w.text);
+
+                setGoldenWordBank(prev => {
+                    const existing = new Set(prev.map(w => w.text));
+                    const merged = [...prev, ...words.filter(w => !existing.has(w.text))];
+                    return merged;
+                });
+                setGoldenWordsLoaded(true);
+            }
+        } catch (error) {
+            console.error("Error fetching golden words:", error);
+        }
+    };
+
+    useEffect(() => {
+        if (started && !goldenWordsLoaded) {
+            loadGoldenWords(1);
+        }
+    }, [started]);
+
     async function endGame() {
         if (gameOver || isEndingRef.current) return;
 
@@ -150,7 +186,8 @@ export default function Game({ onBack }) {
                 waveReached: wave,
                 correctWords: correctWords,
                 errors: errorsRef.current,
-                score: finalScore
+                score: finalScore,
+                goldenWords: goldenWordsTypedRef.current
             });
 
             if (response.success) {
@@ -402,6 +439,14 @@ export default function Game({ onBack }) {
 
         const config = getWaveConfig();
 
+        // احتمال تولید کلمه طلایی در هر اسلات (٪)
+        const GOLDEN_SPAWN_CHANCE = 0.1;
+
+        const getRandomGoldenWord = () => {
+            if (!goldenWordBank.length) return null;
+            return goldenWordBank[Math.floor(Math.random() * goldenWordBank.length)];
+        };
+
         const spawnWord = () => {
             setFallingWords(prev => {
                 if (prev.length >= getMaxConcurrentWords()) return prev;
@@ -411,8 +456,12 @@ export default function Game({ onBack }) {
 
                 for (let i = 0; i < count && updated.length < getMaxConcurrentWords(); i++) {
                     const newX = generateSafeX(updated);
-                    const wordText = randomWord(updated);
 
+                    // شانس تولید کلمه طلایی
+                    const shouldSpawnGolden = Math.random() < GOLDEN_SPAWN_CHANCE;
+                    const golden = shouldSpawnGolden ? getRandomGoldenWord() : null;
+
+                    const wordText = golden ? golden.text : randomWord(updated);
                     if (!wordText) continue;
 
                     const newWord = {
@@ -420,7 +469,9 @@ export default function Game({ onBack }) {
                         text: wordText,
                         x: newX,
                         duration: config.speed,
-                        createdAt: Date.now()
+                        createdAt: Date.now(),
+                        isGolden: !!golden,
+                        multiplier: golden?.multiplier || 10
                     };
 
                     updated.push(newWord);
@@ -449,7 +500,7 @@ export default function Game({ onBack }) {
             }
         };
 
-    }, [started, gameOver, isWaveTransition, wave, pendingWave, wordBank]);
+    }, [started, gameOver, isWaveTransition, wave, pendingWave, wordBank, goldenWordBank]);
 
 
 
@@ -584,7 +635,16 @@ export default function Game({ onBack }) {
                 const nextProgress = currentProgress + 1;
 
                 if (nextProgress === activeWord.text.length) {
-                    const gained = 10;
+                    const isGolden = !!activeWord.isGolden;
+                    const multiplier = activeWord.multiplier || 10;
+                    const gained = 10 * (isGolden ? multiplier : 1);
+
+                    if (isGolden) {
+                        goldenWordsTypedRef.current += 1;
+                        setGoldenWordsTyped(goldenWordsTypedRef.current);
+                        toast.success(`✨ کلمه طلایی! ${gained} امتیاز`, { duration: 1500, icon: "⭐" });
+                    }
+
                     setCorrectWords(c => c + 1);
 
                     setScore(prevScore => {
@@ -599,6 +659,7 @@ export default function Game({ onBack }) {
                         if (newScore >= threshold * 0.8 && !preloadedWavesRef.current.has(nextWave) && nextWave <= maxWave) {
                             preloadedWavesRef.current.add(nextWave);
                             loadWords(nextWave, true);
+                            loadGoldenWords(nextWave, true);
                         }
 
                         if (newScore >= threshold && wave < maxWave && !pendingWave && !isWaveTransition) {
@@ -677,6 +738,7 @@ export default function Game({ onBack }) {
                             <p>2) اگر ۳ کلمه به خط پایین برسند، بازی تمام می‌شود.</p>
                             <p>3) با هر کلمه صحیح ۱۰ امتیاز می‌گیرید.</p>
                             <p>4) با عبور از امتیاز هر مرحله، به مرحله بعد می‌روید.</p>
+                            <p className="gold-guide">⭐ کلمات طلایی به صورت تصادفی سقوط می‌کنند و تایپ آن‌ها ۱۰ برابر امتیاز دارد!</p>
                         </div>
 
                         <div className="button-group">
@@ -717,24 +779,32 @@ export default function Game({ onBack }) {
                             <FaChevronDown className="icon" />
                             <span>{fallingWords.length}</span>
                         </div>
+                        <div className="hud-item gold">
+                            <span>⭐ X{goldenWordsTyped}</span>
+                        </div>
                     </div>
 
                     {fallingWords.map(word => (
                         <div
                             key={word.id}
                             ref={(el) => (wordRefs.current[word.id] = el)}
-                            className="falling-word"
+                            className={word.isGolden ? "falling-word gold-word" : "falling-word"}
                             style={{
                                 left: `${word.x}%`,
                                 animationDuration: `${word.duration}s`
                             }}
                         >
 
+                            {word.isGolden && <span className="gold-badge">⭐</span>}
                             {word.text.split("").map((char, i) => (
                                 <span
                                     key={i}
                                     style={{
-                                        color: word.id === activeWordId && i < progress ? "#ff9800" : "white"
+                                        color: word.id === activeWordId && i < progress
+                                            ? "#ff9800"
+                                            : word.isGolden
+                                                ? "#ffd700"
+                                                : "white"
                                     }}
                                 >
                                     {char}
@@ -757,6 +827,7 @@ export default function Game({ onBack }) {
                             <p><FaStar className="icon" /> امتیاز نهایی: {score}</p>
                             <p><FaKeyboard className="icon" /> مرحله : {wave}</p>
                             <p><FaCheckCircle className="icon" /> کلمات صحیح: {correctWords}</p>
+                            <p><FaStar className="icon" /> کلمات طلایی: {goldenWordsTyped} ⭐</p>
                             <p><FaTimesCircle className="icon" /> خطاها: {Math.min(errors, 3)}</p>
                             <p><FaClock className="icon" /> زمان: {totalTime} ثانیه</p>
                         </div>

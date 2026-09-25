@@ -34,9 +34,17 @@ const typingScoreSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    goldenWords: {
+        type: Number,
+        default: 0
+    },
     mistakes: {
         type: Number,
         default: 0
+    },
+    goldenWords: {
+        type: Number,
+        default: 0 // تعداد کلمات طلایی که کاربر تایپ کرده است
     },
     season: {
         year: { type: Number, required: true },

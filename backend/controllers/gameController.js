@@ -1,5 +1,6 @@
 const TypingScore = require('../models/TypingScore');
 const Word = require('../models/Word');
+const GoldenWord = require('../models/GoldenWord');
 const ApiResponse = require('../utils/ApiResponse');
 const MESSAGES = require("../constants/responseMessages");
 const { getCurrentJalaaliSeason, getSeasonName } = require('../utils/SeasonHelper');
@@ -7,7 +8,7 @@ const crypto = require('crypto');
 
 exports.saveGameResult = async (req, res) => {
     try {
-        const { score, wpm, correctWords, duration, accuracy, waveReached, errors, signature } = req.body;
+        const { score, wpm, correctWords, duration, accuracy, waveReached, errors, goldenWords, signature } = req.body;
         const secretKey = process.env.GAME_SECRET_KEY;
 
         const expectedData = `${score}-${correctWords}-${wpm}`;
@@ -53,6 +54,7 @@ exports.saveGameResult = async (req, res) => {
             waveReached: waveReached || 1,
             correctWords: correctWords || 0,
             mistakes: errors || 0,
+            goldenWords: goldenWords || 0,
             season: {
                 year: currentSeason.year,
                 seasonNumber: currentSeason.seasonNumber
@@ -99,6 +101,38 @@ exports.getWordsByWave = async (req, res) => {
     }
 };
 
+
+exports.getGoldenWordsByWave = async (req, res) => {
+    try {
+        const { wave } = req.params;
+        const waveNumber = parseInt(wave, 10) || 1;
+
+        // کلمات طلایی فعال که در این مرحله و مراحل بالاتر در دسترس هستند
+        const goldenWords = await GoldenWord.aggregate([
+            { $match: { isActive: true, difficulty: { $lte: waveNumber } } },
+            { $sample: { size: Math.min(5 + waveNumber * 2, 15) } },
+            { $project: { text: 1, multiplier: 1, _id: 0 } }
+        ]);
+
+        return res.json(
+            new ApiResponse(
+                200,
+                MESSAGES.SUCCESS.DEFAULT,
+                goldenWords,
+                true
+            )
+        );
+    } catch (error) {
+        return res.status(500).json(
+            new ApiResponse(
+                500,
+                MESSAGES.ERROR.DEFAULT,
+                null,
+                false
+            )
+        );
+    }
+};
 
 exports.getLeaderboard = async (req, res) => {
     try {
